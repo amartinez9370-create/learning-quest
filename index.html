@@ -237,7 +237,13 @@
   .npc-sprite-img{ position:absolute; left:50%; bottom:0; height:100%; width:auto; max-width:none; max-height:100%; object-fit:contain; filter:drop-shadow(2px 4px 2px rgba(0,0,0,0.35)); z-index:2; }
   .npc-zone:hover .npc-marker, .npc-zone:active .npc-marker{ transform:scale(1.1); }
   .npc-marker{ transition:transform .12s; }
-  .npc-zone-stars{ margin-bottom:2px; font-size:clamp(13px,2.6vw,20px); color:var(--yellow); text-shadow:1px 1px 0 #000, 0 0 4px rgba(0,0,0,0.5); pointer-events:none; white-space:nowrap; }
+  .npc-zone-stars{
+    margin-bottom:2px; font-size:clamp(13px,2.6vw,20px); color:var(--yellow); pointer-events:none; white-space:nowrap;
+    text-shadow:
+      -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000,
+      -1.5px 0 0 #000, 1.5px 0 0 #000, 0 -1.5px 0 #000, 0 1.5px 0 #000,
+      0 0 6px rgba(0,0,0,0.7);
+  }
   .logo{ font-size:36px; color:var(--yellow); text-shadow:4px 4px 0 #7a1230; line-height:1.4; margin-bottom:8px; }
   .logo-sub{ font-size:14px; font-family:'Baloo 2',cursive; color:var(--blue); letter-spacing:0.5px; margin-bottom:26px; }
 
