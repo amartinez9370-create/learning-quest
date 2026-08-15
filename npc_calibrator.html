@@ -143,7 +143,8 @@ const LOCATION_IMAGES = {
   "watcherspeak": "assets/locations/watcherspeak.webp",
   "stonepeakpass": "assets/locations/stonepeakpass.webp",
   "ironwallfort": "assets/locations/ironwallfort.webp",
-  "millbrookfarm": "assets/locations/millbrookfarm.webp"
+  "millbrookfarm": "assets/locations/millbrookfarm.webp",
+  "standingstones": "assets/locations/standingstones.webp"
 };
 const NPC_SPRITES = {
   "apothecary01": "assets/npcs/apothecary01.webp",
@@ -170,7 +171,12 @@ const NPC_SPRITES = {
   "miller01": "assets/npcs/miller01.webp",
   "wheatfarmer01": "assets/npcs/wheatfarmer01.webp",
   "orchardkeeper01": "assets/npcs/orchardkeeper01.webp",
-  "shepherd01": "assets/npcs/shepherd01.webp"
+  "shepherd01": "assets/npcs/shepherd01.webp",
+  "forester01": "assets/npcs/forester01.webp",
+  "huntertrapper01": "assets/npcs/huntertrapper01.webp",
+  "miner01": "assets/npcs/miner01.webp",
+  "mountainguard01": "assets/npcs/mountainguard01.webp",
+  "mountainhunter01": "assets/npcs/mountainhunter01.webp"
 };
 const REGIONS = {
   windyplains: {
@@ -179,7 +185,7 @@ const REGIONS = {
       { key:"azurecastle",   name:"Azure Castle",    subject:"ap",      cx:22.3, cy:29.8, image:"azurecastle" },
       { key:"millbrookfarm", name:"Millbrook Farm",  subject:"epp",     cx:49.2, cy:19.9, image:"millbrookfarm" },
       { key:"watcherspeak",  name:"Watcher's Peak",  subject:"science", cx:77.9, cy:22.2, image:"watcherspeak" },
-      { key:"standingstones",name:"Standing Stones", subject:"english", cx:19.2, cy:62.5, image:null },
+      { key:"standingstones",name:"Standing Stones", subject:"english", cx:19.2, cy:62.5, image:"standingstones" },
       { key:"hiddenlagoon",  name:"Hidden Lagoon",   subject:"gmrc",    cx:48.5, cy:49.4, image:"hiddenlagoon" },
       { key:"ironwallfort",  name:"Ironwall Fort",   subject:"filipino",cx:81.4, cy:57.1, image:"ironwallfort" },
       { key:"travelerscamp", name:"Traveler's Camp", subject:"mapeh",   cx:77.4, cy:83.9, image:null },
@@ -241,6 +247,19 @@ const LOCATION_NPC_SPOTS = {
     {x:52.8, y:53.9, sprite:"farmhand01", size:9},
     {x:24.1, y:38, sprite:"wheatfarmer01", size:9},
     {x:24, y:87.9, sprite:"orchardkeeper01", size:10}
+  ],
+  standingstones: [
+    {x:8, y:15, sprite:"youngadventurer", size:9},
+    {x:90, y:15, sprite:"travelingmerchant01", size:9},
+    {x:25, y:25, sprite:"grovekeeper01", size:9},
+    {x:48, y:12, sprite:"elventrader01", size:9},
+    {x:70, y:22, sprite:"forestherbalist01", size:9},
+    {x:15, y:50, sprite:"villageelder01", size:9},
+    {x:50, y:48, sprite:"travelingbard", size:9},
+    {x:85, y:50, sprite:"apothecary01", size:9},
+    {x:20, y:75, sprite:"farmersdaughter01", size:9},
+    {x:8, y:88, sprite:"plainsranger01", size:9},
+    {x:82, y:85, sprite:"caravanguard01", size:9}
   ]
 };
 let regions = JSON.parse(JSON.stringify(REGIONS));
