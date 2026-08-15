@@ -108,6 +108,10 @@
     background:rgba(94,234,212,0.1); border:1px solid rgba(94,234,212,0.35); color:var(--text);
   }
   .signedin-indicator-btn:hover{ background:rgba(94,234,212,0.18); }
+  .signedin-indicator-btn.signedout{
+    padding:7px 12px; background:var(--panel); border:2px solid var(--panel-light); color:var(--text-dim);
+  }
+  .signedin-indicator-btn.signedout:hover{ background:var(--panel-light); color:var(--text); }
   .signedin-indicator-btn img{ width:22px; height:22px; border-radius:50%; display:block; }
   .signedin-popover{
     display:none; position:absolute; top:calc(100% + 8px); right:0; z-index:50;
@@ -183,6 +187,27 @@
   .charselect-btn-row{ display:flex; gap:10px; }
   .charselect-btn-row .pixel-btn{ flex:1; }
   .charselect-btn-row .poke-leave-btn{ flex:0 0 110px; }
+
+  /* ---------- LEADERBOARD ---------- */
+  .leaderboard-wrap{ max-width:640px; margin:0 auto; }
+  .leaderboard-card{
+    background:linear-gradient(180deg,var(--panel-light),var(--panel)); border:1px solid var(--border); border-radius:20px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.5); padding:clamp(14px,4vw,22px);
+  }
+  .lb-row{
+    display:flex; align-items:center; gap:12px; padding:12px 10px; border-radius:12px; margin-bottom:6px;
+  }
+  .lb-row:nth-child(odd){ background:rgba(255,255,255,0.025); }
+  .lb-row.lb-me{ background:rgba(94,234,212,0.1); border:1px solid rgba(94,234,212,0.3); }
+  .lb-rank{ font-family:'Baloo 2',cursive; font-weight:700; font-size:16px; color:var(--text-dim); width:28px; text-align:center; flex-shrink:0; }
+  .lb-rank.lb-top1{ color:#ffd23f; font-size:20px; }
+  .lb-rank.lb-top2{ color:#c9c9d8; font-size:18px; }
+  .lb-rank.lb-top3{ color:#d99a5c; font-size:18px; }
+  .lb-pic{ width:36px; height:36px; border-radius:50%; flex-shrink:0; background:var(--panel); object-fit:cover; }
+  .lb-name{ flex:1; font-size:14px; font-weight:700; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lb-stars{ font-family:'Baloo 2',cursive; font-weight:700; font-size:14px; color:var(--yellow); flex-shrink:0; }
+  .lb-empty, .lb-loading, .lb-error{ text-align:center; padding:40px 20px; color:var(--text-dim); font-size:14px; line-height:1.7; }
+  .lb-error{ color:var(--red); }
   .term-tabs{ display:flex; gap:8px; justify-content:center; margin-bottom:14px; flex-wrap:wrap; }
   .term-tab{
     font-family:'Baloo 2',cursive; font-size:12px; padding:8px 14px; border-radius:8px; cursor:pointer;
@@ -515,22 +540,24 @@
     <div class="region-title-banner">
       <h2 id="regionTitle">Windy Plains</h2>
       <div class="newgame-row">
-        <div class="signedin-indicator-wrap" id="signedInIndicatorWrap" style="display:none;">
-          <button class="signedin-indicator-btn" id="signedInIndicatorBtn" onclick="toggleSignedInPopover()">
-            <img id="signedInIndicatorPic" src="" alt=""/>
-            <span>Signed in</span>
-          </button>
-          <div class="signedin-popover" id="signedInPopover">
-            <div class="sp-name" id="signedInPopoverName"></div>
-            <button class="sp-signout-btn" onclick="handleSignOutClick(); toggleSignedInPopover();">Sign out</button>
-          </div>
-        </div>
+        <div class="signedin-indicator-wrap" id="signedInIndicatorWrap"></div>
+        <button class="newgame-btn" onclick="openLeaderboard()">🏆 Leaderboard</button>
         <button class="newgame-btn" onclick="openCharacterSelect()">👤 New Game</button>
       </div>
     </div>
     <div class="term-tabs" id="termTabs"></div>
     <div class="region-wrap">
       <div class="region-img-box" id="regionImgBox"></div>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="screen" id="screen-leaderboard">
+    <div class="topbar"><span class="crumb" onclick="goToRegionMap()">← REGION MAP</span><span>🏆 LEADERBOARD</span></div>
+    <div class="leaderboard-wrap">
+      <div class="leaderboard-card">
+        <div id="leaderboardBody"></div>
+      </div>
     </div>
   </div>
 
@@ -2063,16 +2090,22 @@ function updateSignInUI(){
   // Update the persistent region-map signed-in indicator, independently of the modal.
   const indicatorWrap = document.getElementById('signedInIndicatorWrap');
   if(indicatorWrap){
+    indicatorWrap.style.display = 'block';
     if(cloudUser){
-      indicatorWrap.style.display = 'block';
-      const pic = document.getElementById('signedInIndicatorPic');
-      const nameEl = document.getElementById('signedInPopoverName');
-      if(pic) pic.src = cloudUser.photoURL || '';
-      if(pic) pic.style.display = cloudUser.photoURL ? 'block' : 'none';
-      if(nameEl) nameEl.textContent = cloudUser.displayName || cloudUser.email || 'Google account';
+      indicatorWrap.innerHTML = `
+        <button class="signedin-indicator-btn" id="signedInIndicatorBtn" onclick="toggleSignedInPopover()">
+          <img id="signedInIndicatorPic" src="${cloudUser.photoURL || ''}" alt="" style="display:${cloudUser.photoURL ? 'block':'none'};"/>
+          <span>Signed in</span>
+        </button>
+        <div class="signedin-popover" id="signedInPopover">
+          <div class="sp-name" id="signedInPopoverName">${cloudUser.displayName || cloudUser.email || 'Google account'}</div>
+          <button class="sp-signout-btn" onclick="handleSignOutClick(); toggleSignedInPopover();">Sign out</button>
+        </div>`;
     } else {
-      indicatorWrap.style.display = 'none';
-      document.getElementById('signedInPopover').classList.remove('show');
+      indicatorWrap.innerHTML = `
+        <button class="signedin-indicator-btn signedout" id="signedInIndicatorBtn" onclick="handleSignInClick()">
+          <span>👤 Sign in</span>
+        </button>`;
     }
   }
 }
@@ -2463,6 +2496,55 @@ function goToRegionMap(){
   showScreen('screen-region');
 }
 
+async function openLeaderboard(){
+  showScreen('screen-leaderboard');
+  const body = document.getElementById('leaderboardBody');
+  body.innerHTML = `<div class="lb-loading">Loading leaderboard...</div>`;
+
+  if(!firebaseReady){
+    body.innerHTML = `<div class="lb-error">Couldn't connect just yet. Try again in a moment.</div>`;
+    return;
+  }
+
+  const result = await window.LQFirebase.getLeaderboard(20);
+  if(!result.ok){
+    body.innerHTML = `<div class="lb-error">Couldn't load the leaderboard right now. Please try again later.</div>`;
+    return;
+  }
+  if(!result.rows || result.rows.length === 0){
+    body.innerHTML = `<div class="lb-empty">No one's on the leaderboard yet.<br>Sign in and earn some stars to be the first! ⭐</div>`;
+    return;
+  }
+
+  const medalRank = (i)=>{
+    if(i===0) return '🥇';
+    if(i===1) return '🥈';
+    if(i===2) return '🥉';
+    return String(i+1);
+  };
+  const rankClass = (i)=>{
+    if(i===0) return 'lb-top1';
+    if(i===1) return 'lb-top2';
+    if(i===2) return 'lb-top3';
+    return '';
+  };
+
+  body.innerHTML = result.rows.map((row, i)=>{
+    const isMe = cloudUser && row.uid === cloudUser.uid;
+    const name = row.playerName || row.displayName || 'Adventurer';
+    const pic = row.photoURL
+      ? `<img class="lb-pic" src="${row.photoURL}" alt=""/>`
+      : `<div class="lb-pic" style="display:flex;align-items:center;justify-content:center;font-size:16px;">👤</div>`;
+    return `
+      <div class="lb-row ${isMe ? 'lb-me' : ''}">
+        <div class="lb-rank ${rankClass(i)}">${medalRank(i)}</div>
+        ${pic}
+        <div class="lb-name">${name}${isMe ? ' (You)' : ''}</div>
+        <div class="lb-stars">⭐ ${row.totalStars || 0}</div>
+      </div>`;
+  }).join('');
+}
+
 function renderRegionTabs(){
   const tabs = document.getElementById('termTabs');
   tabs.innerHTML = Object.keys(REGIONS).map(rk=>{
@@ -2574,6 +2656,7 @@ function pickLocalMapNpc(topicIdx){
 /* init */
 const hadSavedProfile = loadPlayerProfile();
 goToRegionMap();
+updateSignInUI();
 if(!hadSavedProfile){ openCharacterSelect(); }
 </script>
 </body>

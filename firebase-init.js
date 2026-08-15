@@ -91,7 +91,12 @@ window.LQFirebase = {
         (sum, arr) => sum + arr.reduce((a,b)=>a+b, 0), 0
       );
       const ref = doc(db, "users", uid);
-      await setDoc(ref, {
+      // Only bump the tie-break timestamp when the star total actually goes up,
+      // so two players tied at the same total are ranked by whoever reached it
+      // first — not by whoever most recently touched their save file.
+      const existing = await getDoc(ref);
+      const prevTotal = existing.exists() ? (existing.data().totalStars || 0) : 0;
+      const payload = {
         displayName: displayName || playerName || "Adventurer",
         photoURL: photoURL || null,
         playerName: playerName || displayName || "Adventurer",
@@ -99,7 +104,11 @@ window.LQFirebase = {
         progress,
         totalStars,
         lastActive: serverTimestamp()
-      }, { merge:true });
+      };
+      if(totalStars > prevTotal || !existing.exists()){
+        payload.starsAchievedAt = serverTimestamp();
+      }
+      await setDoc(ref, payload, { merge:true });
       return { ok:true };
     } catch (err) {
       console.error("Failed to save progress:", err);
@@ -109,7 +118,7 @@ window.LQFirebase = {
 
   async getLeaderboard(topN = 20){
     try {
-      const q = query(collection(db, "users"), orderBy("totalStars", "desc"), orderBy("lastActive", "asc"), limit(topN));
+      const q = query(collection(db, "users"), orderBy("totalStars", "desc"), orderBy("starsAchievedAt", "asc"), limit(topN));
       const snap = await getDocs(q);
       const rows = [];
       snap.forEach(d => rows.push({ uid: d.id, ...d.data() }));
