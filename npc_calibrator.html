@@ -165,7 +165,12 @@ const NPC_SPRITES = {
   "travelingmerchant01": "assets/npcs/travelingmerchant01.webp",
   "villageelder01": "assets/npcs/villageelder01.webp",
   "woodlandranger01": "assets/npcs/woodlandranger01.webp",
-  "youngadventurer": "assets/npcs/youngadventurer.webp"
+  "youngadventurer": "assets/npcs/youngadventurer.webp",
+  "villagebaker01": "assets/npcs/villagebaker01.webp",
+  "miller01": "assets/npcs/miller01.webp",
+  "wheatfarmer01": "assets/npcs/wheatfarmer01.webp",
+  "orchardkeeper01": "assets/npcs/orchardkeeper01.webp",
+  "shepherd01": "assets/npcs/shepherd01.webp"
 };
 const REGIONS = {
   windyplains: {
@@ -229,13 +234,13 @@ const LOCATION_NPC_SPOTS = {
     {x:43, y:68.3, sprite:"forgeworker01", size:9}
   ],
   millbrookfarm: [
-    {x:45, y:42, sprite:"mountainminer01", size:9},
+    {x:45, y:42, sprite:"miller01", size:9},
     {x:72, y:32, sprite:"villageelder01", size:9},
-    {x:88, y:45, sprite:"stablehand01", size:9},
+    {x:88, y:45, sprite:"shepherd01", size:9},
     {x:8, y:45, sprite:"forgeworker01", size:9},
     {x:12, y:22, sprite:"farmhand01", size:9},
-    {x:28, y:78, sprite:"farmersdaughter01", size:9},
-    {x:60, y:68, sprite:"grovekeeper01", size:9}
+    {x:28, y:78, sprite:"wheatfarmer01", size:9},
+    {x:60, y:68, sprite:"orchardkeeper01", size:9}
   ]
 };
 let regions = JSON.parse(JSON.stringify(REGIONS));
