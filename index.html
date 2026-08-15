@@ -93,13 +93,35 @@
   .region-zone-stars{ font-size:clamp(9px,1.6vw,12px); color:var(--yellow); text-shadow:1px 1px 0 rgba(0,0,0,0.6); pointer-events:none; }
   .region-title-banner{ text-align:center; margin-bottom:10px; position:relative; }
   .region-title-banner h2{ font-size:clamp(16px,4vw,20px); color:var(--yellow); }
-  .newgame-row{ position:absolute; right:0; top:2px; }
+  .newgame-row{ position:absolute; right:0; top:2px; display:flex; align-items:center; gap:8px; }
   .newgame-btn{
     font-family:'Baloo 2',cursive; font-size:12px; padding:7px 12px; border-radius:8px; cursor:pointer;
     background:var(--panel); border:2px solid var(--panel-light); color:var(--text-dim);
   }
   .newgame-btn:hover{ background:var(--panel-light); color:var(--text); }
-  @media (max-width:480px){ .newgame-row{ position:static; margin-top:8px; } }
+  @media (max-width:480px){ .newgame-row{ position:static; margin-top:8px; justify-content:center; } }
+
+  .signedin-indicator-wrap{ position:relative; }
+  .signedin-indicator-btn{
+    display:flex; align-items:center; gap:6px; font-family:'Baloo 2',cursive; font-size:12px;
+    padding:5px 12px 5px 5px; border-radius:20px; cursor:pointer;
+    background:rgba(94,234,212,0.1); border:1px solid rgba(94,234,212,0.35); color:var(--text);
+  }
+  .signedin-indicator-btn:hover{ background:rgba(94,234,212,0.18); }
+  .signedin-indicator-btn img{ width:22px; height:22px; border-radius:50%; display:block; }
+  .signedin-popover{
+    display:none; position:absolute; top:calc(100% + 8px); right:0; z-index:50;
+    background:var(--panel); border:1px solid var(--border); border-radius:12px;
+    box-shadow:0 14px 32px rgba(0,0,0,0.5); padding:12px; min-width:170px;
+  }
+  .signedin-popover.show{ display:block; }
+  .signedin-popover .sp-name{ font-size:12px; color:var(--text-dim); margin-bottom:10px; word-break:break-word; line-height:1.4; }
+  .signedin-popover .sp-signout-btn{
+    width:100%; font-family:'Nunito',sans-serif; font-weight:700; font-size:12px; color:var(--red);
+    background:rgba(217,112,122,0.1); border:1px solid rgba(217,112,122,0.35); border-radius:8px;
+    padding:8px; cursor:pointer;
+  }
+  .signedin-popover .sp-signout-btn:hover{ background:rgba(217,112,122,0.18); }
 
   /* ---------- CHARACTER SELECT MODAL ---------- */
   .charselect-overlay{
@@ -492,7 +514,19 @@
   <div class="screen active" id="screen-region">
     <div class="region-title-banner">
       <h2 id="regionTitle">Windy Plains</h2>
-      <div class="newgame-row"><button class="newgame-btn" onclick="openCharacterSelect()">👤 New Game</button></div>
+      <div class="newgame-row">
+        <div class="signedin-indicator-wrap" id="signedInIndicatorWrap" style="display:none;">
+          <button class="signedin-indicator-btn" id="signedInIndicatorBtn" onclick="toggleSignedInPopover()">
+            <img id="signedInIndicatorPic" src="" alt=""/>
+            <span>Signed in</span>
+          </button>
+          <div class="signedin-popover" id="signedInPopover">
+            <div class="sp-name" id="signedInPopoverName"></div>
+            <button class="sp-signout-btn" onclick="handleSignOutClick(); toggleSignedInPopover();">Sign out</button>
+          </div>
+        </div>
+        <button class="newgame-btn" onclick="openCharacterSelect()">👤 New Game</button>
+      </div>
     </div>
     <div class="term-tabs" id="termTabs"></div>
     <div class="region-wrap">
@@ -2005,28 +2039,55 @@ async function handleAuthStateChange(user){
 }
 
 function updateSignInUI(){
-  const btn = document.getElementById('signInBtn');
-  const btnText = document.getElementById('signInBtnText');
-  const status = document.getElementById('signInStatus');
+  // Update the character-select modal's sign-in row, if that markup is currently present.
   const row = document.getElementById('charSelectSignInRow');
-  if(!btn) return; // modal markup not present yet on first paint
-  if(cloudUser){
-    row.innerHTML = `
-      <div class="signedin-banner">
-        ${cloudUser.photoURL ? `<img src="${cloudUser.photoURL}" alt=""/>` : ''}
-        <div class="sb-text">Signed in as <b>${cloudUser.displayName || cloudUser.email || 'Google user'}</b><br>Your progress will be saved to your account.</div>
-        <button onclick="handleSignOutClick()">Sign out</button>
-      </div>`;
-  } else {
-    row.innerHTML = `
-      <button class="signin-google-btn" id="signInBtn" onclick="handleSignInClick()">
-        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.3 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.3 2.7l6-6C33.7 6.5 29.1 4.5 24 4.5 12.7 4.5 3.5 13.7 3.5 25S12.7 45.5 24 45.5 44.5 36.3 44.5 25c0-1.5-.2-3-.5-4.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 16 18.9 13 24 13c2.8 0 5.3 1 7.3 2.7l6-6C33.7 6.5 29.1 4.5 24 4.5c-7.7 0-14.3 4.4-17.7 10.2z"/><path fill="#4CAF50" d="M24 45.5c5 0 9.6-1.9 13-5.1l-6-4.9c-2 1.4-4.5 2.2-7 2.2-5.3 0-9.7-3.6-11.3-8.4l-6.6 5.1C9.6 41 16.3 45.5 24 45.5z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.6l6 4.9c-.4.4 6.5-4.8 6.5-14.5 0-1.5-.2-3-.5-4.5z"/></svg>
-        <span id="signInBtnText">Sign in with Google</span>
-      </button>
-      <div class="signin-status" id="signInStatus"></div>
-      <div class="signin-divider"><span>or play without an account</span></div>`;
+  if(row){
+    if(cloudUser){
+      row.innerHTML = `
+        <div class="signedin-banner">
+          ${cloudUser.photoURL ? `<img src="${cloudUser.photoURL}" alt=""/>` : ''}
+          <div class="sb-text">Signed in as <b>${cloudUser.displayName || cloudUser.email || 'Google user'}</b><br>Your progress will be saved to your account.</div>
+          <button onclick="handleSignOutClick()">Sign out</button>
+        </div>`;
+    } else {
+      row.innerHTML = `
+        <button class="signin-google-btn" id="signInBtn" onclick="handleSignInClick()">
+          <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.3 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.3 2.7l6-6C33.7 6.5 29.1 4.5 24 4.5 12.7 4.5 3.5 13.7 3.5 25S12.7 45.5 24 45.5 44.5 36.3 44.5 25c0-1.5-.2-3-.5-4.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 16 18.9 13 24 13c2.8 0 5.3 1 7.3 2.7l6-6C33.7 6.5 29.1 4.5 24 4.5c-7.7 0-14.3 4.4-17.7 10.2z"/><path fill="#4CAF50" d="M24 45.5c5 0 9.6-1.9 13-5.1l-6-4.9c-2 1.4-4.5 2.2-7 2.2-5.3 0-9.7-3.6-11.3-8.4l-6.6 5.1C9.6 41 16.3 45.5 24 45.5z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.6l6 4.9c-.4.4 6.5-4.8 6.5-14.5 0-1.5-.2-3-.5-4.5z"/></svg>
+          <span id="signInBtnText">Sign in with Google</span>
+        </button>
+        <div class="signin-status" id="signInStatus"></div>
+        <div class="signin-divider"><span>or play without an account</span></div>`;
+    }
+  }
+
+  // Update the persistent region-map signed-in indicator, independently of the modal.
+  const indicatorWrap = document.getElementById('signedInIndicatorWrap');
+  if(indicatorWrap){
+    if(cloudUser){
+      indicatorWrap.style.display = 'block';
+      const pic = document.getElementById('signedInIndicatorPic');
+      const nameEl = document.getElementById('signedInPopoverName');
+      if(pic) pic.src = cloudUser.photoURL || '';
+      if(pic) pic.style.display = cloudUser.photoURL ? 'block' : 'none';
+      if(nameEl) nameEl.textContent = cloudUser.displayName || cloudUser.email || 'Google account';
+    } else {
+      indicatorWrap.style.display = 'none';
+      document.getElementById('signedInPopover').classList.remove('show');
+    }
   }
 }
+
+function toggleSignedInPopover(){
+  document.getElementById('signedInPopover').classList.toggle('show');
+}
+// Clicking anywhere outside the popover closes it.
+document.addEventListener('click', (e)=>{
+  const wrap = document.getElementById('signedInIndicatorWrap');
+  const popover = document.getElementById('signedInPopover');
+  if(!wrap || !popover || !popover.classList.contains('show')) return;
+  if(!wrap.contains(e.target)) popover.classList.remove('show');
+});
+
 
 async function handleSignInClick(){
   const btn = document.getElementById('signInBtn');
