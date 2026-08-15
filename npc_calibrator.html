@@ -46,8 +46,9 @@
   .marker.zone .zlabel{ font-size:11px; font-weight:700; color:#fff; text-shadow:1px 1px 2px #000; pointer-events:none; padding:2px; }
   .marker.zone.selected{ border-color:var(--accent); background:rgba(94,234,212,0.2); box-shadow:0 0 0 2px var(--accent); }
 
-  .marker.sprite{ transform:translate(-50%,-50%); }
-  .marker.sprite img{ display:block; height:100%; width:auto; filter:drop-shadow(2px 4px 3px rgba(0,0,0,0.5)); pointer-events:none; }
+  .marker.sprite{ transform:translate(-50%,-50%); position:absolute; }
+  .marker.sprite-inner{ position:relative; width:100%; height:100%; }
+  .marker.sprite img{ display:block; filter:drop-shadow(2px 4px 3px rgba(0,0,0,0.5)); pointer-events:none; }
   .marker.sprite .slabel{
     position:absolute; bottom:-18px; left:50%; transform:translateX(-50%);
     font-size:10px; font-weight:700; color:#fff; background:rgba(0,0,0,0.6); padding:1px 6px; border-radius:4px;
@@ -207,21 +208,16 @@ const LOCATION_NPC_SPOTS = {
     {x:35.9, y:72.7, sprite:"grovekeeper01", size:11}
   ],
   stonepeakpass: [
-    {x:8, y:55, sprite:"mountainminer01", size:11},
-    {x:30, y:42, sprite:"woodlandranger01", size:11},
-    {x:68, y:32, sprite:"caravanguard01", size:11},
-    {x:78, y:22, sprite:"blacksmith01", size:11},
-    {x:62, y:68, sprite:"tavernkeeper01", size:11},
-    {x:85, y:62, sprite:"stablehand01", size:11},
-    {x:76, y:82, sprite:"fireshrinekeeper01", size:11},
-    {x:42, y:12, sprite:"farmhand01", size:11}
+    {x:45, y:29.6, sprite:"mountainminer01", size:11},
+    {x:36.9, y:49.3, sprite:"woodlandranger01", size:11},
+    {x:58.1, y:15.8, sprite:"caravanguard01", size:11},
+    {x:74.1, y:44.2, sprite:"blacksmith01", size:11},
+    {x:58.7, y:73.8, sprite:"tavernkeeper01", size:11},
+    {x:82.7, y:75.6, sprite:"stablehand01", size:11},
+    {x:64.7, y:36.6, sprite:"fireshrinekeeper01", size:11},
+    {x:19.6, y:66.9, sprite:"farmhand01", size:11}
   ]
 };
-
-/* ============================================================
-   WORKING STATE — deep clone of the loaded data so edits are non-destructive
-   until exported
-   ============================================================ */
 let regions = JSON.parse(JSON.stringify(REGIONS));
 let npcSpots = JSON.parse(JSON.stringify(LOCATION_NPC_SPOTS));
 
@@ -342,10 +338,10 @@ function render(){
       el.style.left = spot.x + '%';
       el.style.top = spot.y + '%';
       el.style.width = size + '%';
-      el.style.height = (size*1.3) + '%';
+      el.style.paddingTop = (size * 1.3) + '%';
       const spriteSrc = NPC_SPRITES[spot.sprite];
       el.innerHTML = spriteSrc
-        ? `<img src="${spriteSrc}" style="transform:scaleX(${faceLeft?-1:1});"/><div class="slabel">${spot.sprite}</div><div class="resize-handle"></div>`
+        ? `<img src="${spriteSrc}" style="position:absolute; left:50%; bottom:0; height:100%; width:auto; max-width:none; max-height:100%; object-fit:contain; transform:translateX(-50%) scaleX(${faceLeft?-1:1});"/><div class="slabel">${spot.sprite}</div><div class="resize-handle"></div>`
         : `<div class="slabel">${spot.sprite} (missing)</div><div class="resize-handle"></div>`;
       attachDragResize(el, i, 'local');
       canvasWrap.appendChild(el);
