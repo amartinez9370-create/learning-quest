@@ -6,6 +6,7 @@
 <title>Learning Quest</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<script type="module" src="firebase-init.js"></script>
 <style>
   :root{
     --bg:#1a1625;
@@ -130,6 +131,33 @@
     background:#fdf6e3; color:#2a2456; border:3px solid var(--border); box-sizing:border-box;
   }
   .charselect-name-row input:focus{ outline:none; border-color:var(--yellow); }
+  .charselect-signin-row{ margin-bottom:18px; }
+  .signin-google-btn{
+    width:100%; display:flex; align-items:center; justify-content:center; gap:10px;
+    background:#fff; color:#3c4043; border:1px solid rgba(0,0,0,0.15); border-radius:12px;
+    font-family:'Nunito',sans-serif; font-weight:700; font-size:14px; padding:11px;
+    cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.2); transition:background .15s ease;
+  }
+  .signin-google-btn:hover{ background:#f7f7f7; }
+  .signin-google-btn:disabled{ opacity:0.6; cursor:default; }
+  .signin-status{ text-align:center; font-size:12px; color:var(--text-dim); margin-top:8px; min-height:16px; }
+  .signin-status.error{ color:var(--red); }
+  .signin-status.success{ color:var(--green); }
+  .signin-divider{ display:flex; align-items:center; text-align:center; margin:14px 0 4px; color:var(--text-dim); font-size:11px; }
+  .signin-divider::before, .signin-divider::after{ content:''; flex:1; height:1px; background:var(--border); }
+  .signin-divider span{ padding:0 10px; white-space:nowrap; }
+  .signedin-banner{
+    display:flex; align-items:center; gap:10px; background:rgba(94,234,212,0.08);
+    border:1px solid rgba(94,234,212,0.3); border-radius:12px; padding:10px 12px; margin-bottom:16px;
+  }
+  .signedin-banner img{ width:32px; height:32px; border-radius:50%; flex-shrink:0; }
+  .signedin-banner .sb-text{ flex:1; font-size:12.5px; color:var(--text); line-height:1.4; }
+  .signedin-banner .sb-text b{ color:var(--gold,var(--yellow)); }
+  .signedin-banner button{
+    font-family:'Nunito',sans-serif; font-size:11px; font-weight:700; color:var(--text-dim);
+    background:none; border:1px solid var(--border); border-radius:8px; padding:6px 10px; cursor:pointer;
+  }
+  .signedin-banner button:hover{ color:var(--text); background:rgba(255,255,255,0.05); }
   .charselect-btn-row{ display:flex; gap:10px; }
   .charselect-btn-row .pixel-btn{ flex:1; }
   .charselect-btn-row .poke-leave-btn{ flex:0 0 110px; }
@@ -476,6 +504,14 @@
   <div class="charselect-overlay" id="charSelectOverlay">
     <div class="charselect-card">
       <h2 class="charselect-title">✨ Choose Your Healer ✨</h2>
+      <div class="charselect-signin-row" id="charSelectSignInRow">
+        <button class="signin-google-btn" id="signInBtn" onclick="handleSignInClick()">
+          <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.3 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.3 2.7l6-6C33.7 6.5 29.1 4.5 24 4.5 12.7 4.5 3.5 13.7 3.5 25S12.7 45.5 24 45.5 44.5 36.3 44.5 25c0-1.5-.2-3-.5-4.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 16 18.9 13 24 13c2.8 0 5.3 1 7.3 2.7l6-6C33.7 6.5 29.1 4.5 24 4.5c-7.7 0-14.3 4.4-17.7 10.2z"/><path fill="#4CAF50" d="M24 45.5c5 0 9.6-1.9 13-5.1l-6-4.9c-2 1.4-4.5 2.2-7 2.2-5.3 0-9.7-3.6-11.3-8.4l-6.6 5.1C9.6 41 16.3 45.5 24 45.5z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.6l6 4.9c-.4.4 6.5-4.8 6.5-14.5 0-1.5-.2-3-.5-4.5z"/></svg>
+          <span id="signInBtnText">Sign in with Google</span>
+        </button>
+        <div class="signin-status" id="signInStatus"></div>
+        <div class="signin-divider"><span>or play without an account</span></div>
+      </div>
       <div class="charselect-options" id="charOptionsWrap"></div>
       <div class="charselect-name-row">
         <label for="playerNameInput">Your Name</label>
@@ -1920,6 +1956,111 @@ let playerGender = 'male';
 let playerName = '';
 let charSelectPendingId = null;
 
+/* ============================================================
+   CLOUD SYNC (Firebase) — optional layer on top of local play.
+   The app must work perfectly with zero Firebase involvement;
+   every cloud call is wrapped so a failure just falls back to
+   local-only behavior instead of breaking anything.
+   ============================================================ */
+let cloudUser = null;       // Firebase user object, or null if signed out
+let firebaseReady = false;  // true once firebase-init.js has loaded
+
+window.addEventListener('lq-firebase-ready', ()=>{
+  firebaseReady = true;
+  window.LQFirebase.onAuthChange(handleAuthStateChange);
+});
+
+async function handleAuthStateChange(user){
+  cloudUser = user;
+  if(user){
+    // Signed in: try to load their cloud progress. If they have some, it wins
+    // over whatever's in this browser's localStorage (cloud is the source of truth
+    // once signed in), so progress follows them across devices.
+    const result = await window.LQFirebase.loadProgress(user.uid);
+    if(result.ok && result.data){
+      const d = result.data;
+      if(d.gender) playerGender = d.gender;
+      if(d.playerName) playerName = d.playerName;
+      if(d.progress){
+        Object.keys(d.progress).forEach(subj=>{
+          if(PROGRESS[subj]) PROGRESS[subj] = d.progress[subj];
+        });
+      }
+    }
+    updateSignInUI();
+    // If the char-select modal happens to be open when sign-in completes, refresh it
+    if(document.getElementById('charSelectOverlay').classList.contains('show')){
+      renderCharacterOptions();
+      document.getElementById('playerNameInput').value = playerName;
+    }
+    // If we now have a name (from cloud or already set), and the modal was only open
+    // because this was first-launch, we can proceed straight to the game.
+    if(playerName && !document.getElementById('charSelectOverlay').dataset.userOpened){
+      closeCharacterSelect();
+      renderRegionMap();
+    }
+  } else {
+    updateSignInUI();
+  }
+}
+
+function updateSignInUI(){
+  const btn = document.getElementById('signInBtn');
+  const btnText = document.getElementById('signInBtnText');
+  const status = document.getElementById('signInStatus');
+  const row = document.getElementById('charSelectSignInRow');
+  if(!btn) return; // modal markup not present yet on first paint
+  if(cloudUser){
+    row.innerHTML = `
+      <div class="signedin-banner">
+        ${cloudUser.photoURL ? `<img src="${cloudUser.photoURL}" alt=""/>` : ''}
+        <div class="sb-text">Signed in as <b>${cloudUser.displayName || cloudUser.email || 'Google user'}</b><br>Your progress will be saved to your account.</div>
+        <button onclick="handleSignOutClick()">Sign out</button>
+      </div>`;
+  } else {
+    row.innerHTML = `
+      <button class="signin-google-btn" id="signInBtn" onclick="handleSignInClick()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.3 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.3 2.7l6-6C33.7 6.5 29.1 4.5 24 4.5 12.7 4.5 3.5 13.7 3.5 25S12.7 45.5 24 45.5 44.5 36.3 44.5 25c0-1.5-.2-3-.5-4.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 16 18.9 13 24 13c2.8 0 5.3 1 7.3 2.7l6-6C33.7 6.5 29.1 4.5 24 4.5c-7.7 0-14.3 4.4-17.7 10.2z"/><path fill="#4CAF50" d="M24 45.5c5 0 9.6-1.9 13-5.1l-6-4.9c-2 1.4-4.5 2.2-7 2.2-5.3 0-9.7-3.6-11.3-8.4l-6.6 5.1C9.6 41 16.3 45.5 24 45.5z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.6l6 4.9c-.4.4 6.5-4.8 6.5-14.5 0-1.5-.2-3-.5-4.5z"/></svg>
+        <span id="signInBtnText">Sign in with Google</span>
+      </button>
+      <div class="signin-status" id="signInStatus"></div>
+      <div class="signin-divider"><span>or play without an account</span></div>`;
+  }
+}
+
+async function handleSignInClick(){
+  const btn = document.getElementById('signInBtn');
+  const status = document.getElementById('signInStatus');
+  if(!firebaseReady){
+    if(status){ status.textContent = "Still connecting — try again in a moment."; status.className = 'signin-status error'; }
+    return;
+  }
+  if(btn) btn.disabled = true;
+  if(status){ status.textContent = "Opening Google sign-in..."; status.className = 'signin-status'; }
+  const result = await window.LQFirebase.signIn();
+  if(btn) btn.disabled = false;
+  if(!result.ok){
+    if(status){ status.textContent = "Sign-in didn't complete. You can still play without an account."; status.className = 'signin-status error'; }
+  }
+  // On success, handleAuthStateChange() fires automatically via the auth listener.
+}
+
+async function handleSignOutClick(){
+  if(!firebaseReady) return;
+  await window.LQFirebase.signOutUser();
+}
+
+async function cloudSyncProgress(){
+  if(!cloudUser || !firebaseReady) return; // no-op if not signed in
+  await window.LQFirebase.saveProgress(cloudUser.uid, {
+    displayName: cloudUser.displayName,
+    photoURL: cloudUser.photoURL,
+    progress: PROGRESS,
+    gender: playerGender,
+    playerName: playerName
+  });
+}
+
 function pokePlayerSprite(view){
   return PLAYER_SPRITES['player_' + playerGender + '_' + view];
 }
@@ -1940,18 +2081,22 @@ function savePlayerProfile(){
   try{
     localStorage.setItem('lqh_player_profile', JSON.stringify({ gender:playerGender, name:playerName }));
   } catch(e){ /* silent fail — session still works, just won't persist */ }
+  cloudSyncProgress(); // no-op if not signed in
 }
 
 function openCharacterSelect(){
   charSelectPendingId = playerGender;
   renderCharacterOptions();
   document.getElementById('playerNameInput').value = playerName;
+  updateSignInUI();
+  document.getElementById('charSelectOverlay').dataset.userOpened = 'true';
   // Allow cancelling only if a profile already exists (i.e. not the forced first-launch flow)
   document.getElementById('charSelectCancelBtn').style.display = playerName ? 'block' : 'none';
   document.getElementById('charSelectOverlay').classList.add('show');
 }
 function closeCharacterSelect(){
   document.getElementById('charSelectOverlay').classList.remove('show');
+  delete document.getElementById('charSelectOverlay').dataset.userOpened;
 }
 function renderCharacterOptions(){
   const wrap = document.getElementById('charOptionsWrap');
@@ -2156,7 +2301,7 @@ function endPokeBattle(won){
     else if(pokeState.wrongCount<=2) stars = 2;
     else stars = 1;
     const wasFirst = CP()[npc.topicIdx] === 0;
-    if(stars > CP()[npc.topicIdx]) CP()[npc.topicIdx] = stars;
+    if(stars > CP()[npc.topicIdx]){ CP()[npc.topicIdx] = stars; cloudSyncProgress(); }
     sfxWin();
     if(currentLocationKey){ /* rendered local map: HUD/marker refresh happens when we return via closePokeBattle */ }
     else { owUpdateHud(); owRender(); }
