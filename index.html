@@ -238,7 +238,8 @@
   .npc-zone:hover .npc-marker, .npc-zone:active .npc-marker{ transform:scale(1.1); }
   .npc-marker{ transition:transform .12s; }
   .npc-zone-stars{
-    margin-bottom:2px; font-size:clamp(13px,2.6vw,20px); color:var(--yellow); pointer-events:none; white-space:nowrap;
+    position:absolute; left:50%; bottom:100%; transform:translateX(-50%); margin-bottom:2px;
+    font-size:clamp(13px,2.6vw,20px); color:var(--yellow); pointer-events:none; white-space:nowrap;
     text-shadow:
       -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000,
       -1.5px 0 0 #000, 1.5px 0 0 #000, 0 -1.5px 0 #000, 0 1.5px 0 #000,
