@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Position Calibrator — Learning Quest Hub</title>
+<style>
+  :root{
+    --bg:#1a1a24; --panel:#232332; --panel-2:#2b2b3d; --border:#3a3a52;
+    --text:#e8e8f0; --text-dim:#9494ab; --accent:#5eead4; --accent-2:#fbbf24; --danger:#f87171;
+    --mono:'SF Mono','Consolas','Monaco',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+  .topbar{
+    display:flex; align-items:center; gap:16px; padding:12px 20px; background:var(--panel);
+    border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; flex-wrap:wrap;
+  }
+  .topbar h1{ font-size:15px; font-weight:600; margin:0; color:var(--accent); white-space:nowrap; }
+  .topbar select, .topbar button{
+    font-family:inherit; font-size:13px; padding:7px 12px; border-radius:6px;
+    background:var(--panel-2); color:var(--text); border:1px solid var(--border); cursor:pointer;
+  }
+  .topbar button.primary{ background:var(--accent); color:#0a0a12; font-weight:600; border:none; }
+  .topbar button.primary:hover{ opacity:0.9; }
+  .topbar button:hover{ background:var(--border); }
+  .topbar .spacer{ flex:1; }
+  .mode-toggle{ display:flex; gap:4px; background:var(--panel-2); padding:3px; border-radius:8px; border:1px solid var(--border); }
+  .mode-toggle button{ border:none; background:transparent; padding:6px 14px; border-radius:5px; }
+  .mode-toggle button.active{ background:var(--accent); color:#0a0a12; font-weight:600; }
+
+  .layout{ display:grid; grid-template-columns:1fr 340px; gap:0; min-height:calc(100vh - 54px); }
+  .canvas-area{ padding:24px; display:flex; align-items:flex-start; justify-content:center; overflow:auto; }
+  .canvas-wrap{ position:relative; max-width:1100px; width:100%; user-select:none; }
+  .canvas-wrap img.bg{ display:block; width:100%; height:auto; border:2px solid var(--border); border-radius:6px; }
+
+  .marker{
+    position:absolute; cursor:grab; touch-action:none;
+  }
+  .marker:active{ cursor:grabbing; }
+  .marker.zone{
+    transform:translate(-50%,-50%);
+    border-radius:50%; border:2px dashed var(--accent-2); background:rgba(251,191,36,0.15);
+    display:flex; align-items:center; justify-content:center; text-align:center;
+  }
+  .marker.zone .zlabel{ font-size:11px; font-weight:700; color:#fff; text-shadow:1px 1px 2px #000; pointer-events:none; padding:2px; }
+  .marker.zone.selected{ border-color:var(--accent); background:rgba(94,234,212,0.2); box-shadow:0 0 0 2px var(--accent); }
+
+  .marker.sprite{ transform:translate(-50%,-50%); }
+  .marker.sprite img{ display:block; height:100%; width:auto; filter:drop-shadow(2px 4px 3px rgba(0,0,0,0.5)); pointer-events:none; }
+  .marker.sprite .slabel{
+    position:absolute; bottom:-18px; left:50%; transform:translateX(-50%);
+    font-size:10px; font-weight:700; color:#fff; background:rgba(0,0,0,0.6); padding:1px 6px; border-radius:4px;
+    white-space:nowrap; pointer-events:none;
+  }
+  .marker.sprite.selected img{ outline:2px solid var(--accent); outline-offset:2px; }
+  .marker .resize-handle{
+    position:absolute; right:-7px; bottom:-7px; width:14px; height:14px; border-radius:50%;
+    background:var(--accent); border:2px solid #0a0a12; cursor:nwse-resize; z-index:5;
+  }
+
+  .sidebar{ background:var(--panel); border-left:1px solid var(--border); padding:18px; overflow-y:auto; max-height:calc(100vh - 54px); position:sticky; top:54px; }
+  .sidebar h2{ font-size:12px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin:0 0 10px; }
+  .sidebar .section{ margin-bottom:22px; }
+  .list-item{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:8px 10px; border-radius:6px; margin-bottom:4px; cursor:pointer;
+    background:var(--panel-2); border:1px solid transparent; font-size:12.5px;
+  }
+  .list-item:hover{ border-color:var(--border); }
+  .list-item.active{ border-color:var(--accent); background:rgba(94,234,212,0.08); }
+  .list-item .li-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .list-item .li-coords{ color:var(--text-dim); font-family:var(--mono); font-size:10.5px; flex-shrink:0; }
+
+  .field-row{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .field-row label{ font-size:11.5px; color:var(--text-dim); width:56px; flex-shrink:0; }
+  .field-row input[type=number]{
+    width:100%; font-family:var(--mono); font-size:12.5px; padding:6px 8px; border-radius:5px;
+    background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+  }
+  .field-row input[type=range]{ flex:1; accent-color:var(--accent); }
+  .hint{ font-size:11px; color:var(--text-dim); line-height:1.6; margin-top:4px; }
+
+  .output-box{
+    background:#0e0e16; border:1px solid var(--border); border-radius:6px; padding:12px;
+    font-family:var(--mono); font-size:11px; line-height:1.6; color:#a5f3d0; white-space:pre; overflow-x:auto;
+    max-height:280px; overflow-y:auto;
+  }
+  .copy-btn{ width:100%; margin-top:8px; padding:9px; }
+
+  .empty-msg{ color:var(--text-dim); font-size:12.5px; text-align:center; padding:30px 10px; line-height:1.6; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>📐 Position Calibrator</h1>
+  <div class="mode-toggle" id="modeToggle">
+    <button data-mode="region" class="active">Region Zones</button>
+    <button data-mode="local">NPC Sprites</button>
+  </div>
+  <select id="locationSelect"></select>
+  <div class="spacer"></div>
+  <button id="resetBtn">↺ Reset to current</button>
+  <button id="exportBtn" class="primary">📋 Copy code</button>
+</div>
+
+<div class="layout">
+  <div class="canvas-area">
+    <div class="canvas-wrap" id="canvasWrap">
+      <img class="bg" id="bgImg" src="" alt="background"/>
+    </div>
+  </div>
+  <div class="sidebar">
+    <div class="section">
+      <h2 id="listTitle">Zones</h2>
+      <div id="itemList"></div>
+    </div>
+    <div class="section" id="editorSection" style="display:none;">
+      <h2>Selected</h2>
+      <div class="field-row"><label>X %</label><input type="number" id="fieldX" step="0.5"/></div>
+      <div class="field-row"><label>Y %</label><input type="number" id="fieldY" step="0.5"/></div>
+      <div class="field-row"><label>Size</label><input type="range" id="fieldSize" min="4" max="30" step="0.5"/><input type="number" id="fieldSizeNum" step="0.5" style="width:60px;"/></div>
+      <div class="hint">Drag the marker to move. Drag the bottom-right handle to resize. Fields update live and can be typed directly.</div>
+    </div>
+    <div class="section">
+      <h2>Export</h2>
+      <div class="hint" style="margin-bottom:8px;">Copies the updated JS object for the current mode + location. Paste it to Claude to apply to the main file.</div>
+      <div class="output-box" id="outputBox">Select an item to see live output, or click "Copy code" to export everything for this view.</div>
+      <button class="copy-btn" id="copyBtn2">📋 Copy code</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const REGION_IMAGES = {
+  "windyplains": "assets/regions/windyplains.webp"
+};
+const LOCATION_IMAGES = {
+  "azurecastle": "assets/locations/azurecastle.webp",
+  "hiddenlagoon": "assets/locations/hiddenlagoon.webp",
+  "watcherspeak": "assets/locations/watcherspeak.webp",
+  "stonepeakpass": "assets/locations/stonepeakpass.webp"
+};
+const NPC_SPRITES = {
+  "apothecary01": "assets/npcs/apothecary01.webp",
+  "blacksmith01": "assets/npcs/blacksmith01.webp",
+  "caravanguard01": "assets/npcs/caravanguard01.webp",
+  "elventrader01": "assets/npcs/elventrader01.webp",
+  "farmersdaughter01": "assets/npcs/farmersdaughter01.webp",
+  "farmhand01": "assets/npcs/farmhand01.webp",
+  "fireshrinekeeper01": "assets/npcs/fireshrinekeeper01.webp",
+  "fisherman01": "assets/npcs/fisherman01.webp",
+  "forestherbalist01": "assets/npcs/forestherbalist01.webp",
+  "forgeworker01": "assets/npcs/forgeworker01.webp",
+  "grovekeeper01": "assets/npcs/grovekeeper01.webp",
+  "mountainminer01": "assets/npcs/mountainminer01.webp",
+  "plainsranger01": "assets/npcs/plainsranger01.webp",
+  "stablehand01": "assets/npcs/stablehand01.webp",
+  "tavernkeeper01": "assets/npcs/tavernkeeper01.webp",
+  "travelingbard": "assets/npcs/travelingbard.webp",
+  "travelingmerchant01": "assets/npcs/travelingmerchant01.webp",
+  "villageelder01": "assets/npcs/villageelder01.webp",
+  "woodlandranger01": "assets/npcs/woodlandranger01.webp",
+  "youngadventurer": "assets/npcs/youngadventurer.webp"
+};
+const REGIONS = {
+  windyplains: {
+    label: "Windy Plains", term: 1, image: "windyplains", unlocked: true,
+    locations: [
+      { key:"azurecastle",   name:"Azure Castle",    subject:"ap",      cx:22.3, cy:29.8, image:"azurecastle" },
+      { key:"millbrookfarm", name:"Millbrook Farm",  subject:"epp",     cx:49.2, cy:19.9, image:null },
+      { key:"watcherspeak",  name:"Watcher's Peak",  subject:"science", cx:77.9, cy:22.2, image:"watcherspeak" },
+      { key:"standingstones",name:"Standing Stones", subject:"english", cx:19.2, cy:62.5, image:null },
+      { key:"hiddenlagoon",  name:"Hidden Lagoon",   subject:"gmrc",    cx:48.5, cy:49.4, image:"hiddenlagoon" },
+      { key:"ironwallfort",  name:"Ironwall Fort",   subject:"filipino",cx:81.4, cy:57.1, image:null },
+      { key:"travelerscamp", name:"Traveler's Camp", subject:"mapeh",   cx:78.2, cy:80.5, image:null },
+      { key:"stonepeakpass", name:"Stonepeak Pass",  subject:"math",    cx:40.9, cy:81.3, image:"stonepeakpass" }
+    ]
+  },
+  verdantforest: { label:"Verdant Forest", term:2, image:null, unlocked:false, locations:[] },
+  embermountain: { label:"Ember Mountain", term:3, image:null, unlocked:false, locations:[] }
+};
+const LOCATION_NPC_SPOTS = {
+  watcherspeak: [
+    {x:18.3, y:52.1, sprite:"fisherman01", size:9},
+    {x:95.9, y:46.8, sprite:"forestherbalist01", size:9},
+    {x:91.7, y:79.4, sprite:"blacksmith01", size:9},
+    {x:72.3, y:88.9, sprite:"forgeworker01", size:9},
+    {x:39.1, y:11.2, sprite:"stablehand01", size:9},
+    {x:20.3, y:30.5, sprite:"farmhand01", size:9},
+    {x:24.9, y:83.9, sprite:"apothecary01", size:9},
+    {x:60.1, y:38.5, sprite:"plainsranger01", size:9},
+    {x:53.9, y:80.5, sprite:"caravanguard01", size:9}
+  ],
+  azurecastle: [
+    {x:34, y:70.1, sprite:"travelingmerchant01", size:14},
+    {x:65.2, y:41.3, sprite:"caravanguard01", size:13},
+    {x:43.3, y:24.9, sprite:"plainsranger01", size:12},
+    {x:85.9, y:71.8, sprite:"elventrader01", size:12},
+    {x:18.9, y:45.5, sprite:"villageelder01", size:12}
+  ],
+  hiddenlagoon: [
+    {x:14.5, y:18.4, sprite:"youngadventurer", size:11},
+    {x:90, y:20.7, sprite:"farmersdaughter01", size:11},
+    {x:70.8, y:75.1, sprite:"travelingbard", size:12},
+    {x:35.9, y:72.7, sprite:"grovekeeper01", size:11}
+  ],
+  stonepeakpass: [
+    {x:8, y:55, sprite:"mountainminer01", size:11},
+    {x:30, y:42, sprite:"woodlandranger01", size:11},
+    {x:68, y:32, sprite:"caravanguard01", size:11},
+    {x:78, y:22, sprite:"blacksmith01", size:11},
+    {x:62, y:68, sprite:"tavernkeeper01", size:11},
+    {x:85, y:62, sprite:"stablehand01", size:11},
+    {x:76, y:82, sprite:"fireshrinekeeper01", size:11},
+    {x:42, y:12, sprite:"farmhand01", size:11}
+  ]
+};
+
+/* ============================================================
+   WORKING STATE — deep clone of the loaded data so edits are non-destructive
+   until exported
+   ============================================================ */
+let regions = JSON.parse(JSON.stringify(REGIONS));
+let npcSpots = JSON.parse(JSON.stringify(LOCATION_NPC_SPOTS));
+
+let currentMode = 'region';      // 'region' | 'local'
+let currentRegionKey = 'windyplains';
+let currentLocationKey = 'watcherspeak';
+let selectedIndex = null;
+
+const canvasWrap = document.getElementById('canvasWrap');
+const bgImg = document.getElementById('bgImg');
+const locationSelect = document.getElementById('locationSelect');
+const itemList = document.getElementById('itemList');
+const listTitle = document.getElementById('listTitle');
+const editorSection = document.getElementById('editorSection');
+const fieldX = document.getElementById('fieldX');
+const fieldY = document.getElementById('fieldY');
+const fieldSize = document.getElementById('fieldSize');
+const fieldSizeNum = document.getElementById('fieldSizeNum');
+const outputBox = document.getElementById('outputBox');
+
+/* ============================================================
+   MODE / LOCATION SELECTORS
+   ============================================================ */
+function populateLocationSelect(){
+  locationSelect.innerHTML = '';
+  if(currentMode === 'region'){
+    Object.keys(regions).forEach(rk=>{
+      const opt = document.createElement('option');
+      opt.value = rk; opt.textContent = regions[rk].label + (regions[rk].unlocked ? '' : ' (locked)');
+      locationSelect.appendChild(opt);
+    });
+    locationSelect.value = currentRegionKey;
+  } else {
+    Object.keys(npcSpots).forEach(lk=>{
+      const opt = document.createElement('option');
+      opt.value = lk; opt.textContent = lk;
+      locationSelect.appendChild(opt);
+    });
+    locationSelect.value = currentLocationKey;
+  }
+}
+
+document.getElementById('modeToggle').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-mode]');
+  if(!btn) return;
+  document.querySelectorAll('#modeToggle button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentMode = btn.dataset.mode;
+  selectedIndex = null;
+  populateLocationSelect();
+  render();
+});
+
+locationSelect.addEventListener('change', ()=>{
+  if(currentMode === 'region') currentRegionKey = locationSelect.value;
+  else currentLocationKey = locationSelect.value;
+  selectedIndex = null;
+  render();
+});
+
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  if(!confirm('Reset this view to the currently-saved positions? Unsaved edits to it will be lost.')) return;
+  if(currentMode === 'region'){
+    regions[currentRegionKey] = JSON.parse(JSON.stringify(REGIONS[currentRegionKey]));
+  } else {
+    npcSpots[currentLocationKey] = JSON.parse(JSON.stringify(LOCATION_NPC_SPOTS[currentLocationKey]));
+  }
+  selectedIndex = null;
+  render();
+});
+
+/* ============================================================
+   MAIN RENDER
+   ============================================================ */
+function render(){
+  populateLocationSelect();
+  canvasWrap.querySelectorAll('.marker').forEach(el=>el.remove());
+
+  if(currentMode === 'region'){
+    listTitle.textContent = 'Locations';
+    const region = regions[currentRegionKey];
+    if(!region.image){
+      bgImg.src = '';
+      itemList.innerHTML = '<div class="empty-msg">This region has no background image loaded yet.</div>';
+      editorSection.style.display = 'none';
+      return;
+    }
+    bgImg.src = REGION_IMAGES[region.image];
+    renderList(region.locations, (loc)=>loc.name);
+    region.locations.forEach((loc,i)=>{
+      const size = loc.size || 15; // default matches original CSS width:15%
+      const el = document.createElement('div');
+      el.className = 'marker zone' + (i===selectedIndex?' selected':'');
+      el.style.left = loc.cx + '%';
+      el.style.top = loc.cy + '%';
+      el.style.width = size + '%';
+      el.style.aspectRatio = '1 / 1';
+      el.innerHTML = `<div class="zlabel">${loc.name}</div><div class="resize-handle"></div>`;
+      attachDragResize(el, i, 'region');
+      canvasWrap.appendChild(el);
+    });
+  } else {
+    listTitle.textContent = 'NPC Sprites';
+    const spots = npcSpots[currentLocationKey];
+    if(!spots){
+      bgImg.src = '';
+      itemList.innerHTML = '<div class="empty-msg">No sprite data for this location.</div>';
+      editorSection.style.display = 'none';
+      return;
+    }
+    bgImg.src = LOCATION_IMAGES[currentLocationKey];
+    renderList(spots, (s,i)=>`#${i+1} ${s.sprite}`);
+    spots.forEach((spot,i)=>{
+      const size = spot.size || 11; // default matches original CSS width:11%
+      const faceLeft = spot.x > 50;
+      const el = document.createElement('div');
+      el.className = 'marker sprite' + (i===selectedIndex?' selected':'');
+      el.style.left = spot.x + '%';
+      el.style.top = spot.y + '%';
+      el.style.width = size + '%';
+      el.style.height = (size*1.3) + '%';
+      const spriteSrc = NPC_SPRITES[spot.sprite];
+      el.innerHTML = spriteSrc
+        ? `<img src="${spriteSrc}" style="transform:scaleX(${faceLeft?-1:1});"/><div class="slabel">${spot.sprite}</div><div class="resize-handle"></div>`
+        : `<div class="slabel">${spot.sprite} (missing)</div><div class="resize-handle"></div>`;
+      attachDragResize(el, i, 'local');
+      canvasWrap.appendChild(el);
+    });
+  }
+  updateEditor();
+  updateOutput();
+}
+
+function renderList(items, labelFn){
+  itemList.innerHTML = items.map((item,i)=>{
+    const x = currentMode==='region' ? item.cx : item.x;
+    const y = currentMode==='region' ? item.cy : item.y;
+    return `<div class="list-item ${i===selectedIndex?'active':''}" data-idx="${i}">
+      <span class="li-name">${labelFn(item,i)}</span>
+      <span class="li-coords">${x.toFixed(1)},${y.toFixed(1)}</span>
+    </div>`;
+  }).join('') || '<div class="empty-msg">No items.</div>';
+  itemList.querySelectorAll('.list-item').forEach(el=>{
+    el.addEventListener('click', ()=>{ selectedIndex = parseInt(el.dataset.idx); render(); });
+  });
+}
+
+/* ============================================================
+   DRAG + RESIZE
+   ============================================================ */
+function attachDragResize(el, index, mode){
+  const handle = el.querySelector('.resize-handle');
+  let dragging = false, resizing = false;
+  let startPX=0, startPY=0, startX=0, startY=0, startSize=0;
+
+  el.addEventListener('pointerdown', (e)=>{
+    if(e.target === handle) return;
+    e.preventDefault();
+    selectedIndex = index;
+    dragging = true;
+    el.setPointerCapture(e.pointerId);
+    const rect = canvasWrap.getBoundingClientRect();
+    startPX = e.clientX; startPY = e.clientY;
+    const item = getItem(index);
+    startX = mode==='region' ? item.cx : item.x;
+    startY = mode==='region' ? item.cy : item.y;
+    document.querySelectorAll('.marker').forEach(m=>m.classList.remove('selected'));
+    el.classList.add('selected');
+    highlightListItem(index);
+    updateEditor();
+  });
+
+  handle.addEventListener('pointerdown', (e)=>{
+    e.preventDefault(); e.stopPropagation();
+    selectedIndex = index;
+    resizing = true;
+    handle.setPointerCapture(e.pointerId);
+    startPX = e.clientX; startPY = e.clientY;
+    const item = getItem(index);
+    startSize = item.size || (mode==='region'?15:11);
+    highlightListItem(index);
+    updateEditor();
+  });
+
+  window.addEventListener('pointermove', (e)=>{
+    if(!dragging && !resizing) return;
+    const rect = canvasWrap.getBoundingClientRect();
+    if(dragging){
+      const dxPct = ((e.clientX - startPX) / rect.width) * 100;
+      const dyPct = ((e.clientY - startPY) / rect.height) * 100;
+      let nx = clamp(startX + dxPct, 0, 100);
+      let ny = clamp(startY + dyPct, 0, 100);
+      setItemPos(index, mode, nx, ny);
+      el.style.left = nx + '%'; el.style.top = ny + '%';
+    }
+    if(resizing){
+      const dxPct = ((e.clientX - startPX) / rect.width) * 100;
+      let ns = clamp(startSize + dxPct, 3, 40);
+      setItemSize(index, mode, ns);
+      el.style.width = ns + '%';
+      if(mode==='region'){ /* aspect-ratio keeps it square */ }
+      else { el.style.height = (ns*1.3) + '%'; }
+    }
+    updateEditor();
+    updateOutput();
+    renderListLive();
+  });
+
+  window.addEventListener('pointerup', ()=>{ dragging=false; resizing=false; });
+}
+
+function highlightListItem(i){
+  itemList.querySelectorAll('.list-item').forEach(el=>el.classList.remove('active'));
+  const target = itemList.querySelector(`.list-item[data-idx="${i}"]`);
+  if(target) target.classList.add('active');
+}
+
+function renderListLive(){
+  const items = currentMode==='region' ? regions[currentRegionKey].locations : npcSpots[currentLocationKey];
+  itemList.querySelectorAll('.list-item').forEach((el,i)=>{
+    const item = items[i];
+    const x = currentMode==='region' ? item.cx : item.x;
+    const y = currentMode==='region' ? item.cy : item.y;
+    const coordEl = el.querySelector('.li-coords');
+    if(coordEl) coordEl.textContent = `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+}
+
+function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
+function getItem(i){
+  return currentMode==='region' ? regions[currentRegionKey].locations[i] : npcSpots[currentLocationKey][i];
+}
+function setItemPos(i, mode, x, y){
+  const item = getItem(i);
+  if(mode==='region'){ item.cx = round1(x); item.cy = round1(y); }
+  else { item.x = round1(x); item.y = round1(y); }
+}
+function setItemSize(i, mode, s){
+  const item = getItem(i);
+  item.size = round1(s);
+}
+function round1(n){ return Math.round(n*10)/10; }
+
+/* ============================================================
+   EDITOR PANEL (numeric fields)
+   ============================================================ */
+function updateEditor(){
+  if(selectedIndex === null){
+    editorSection.style.display = 'none';
+    return;
+  }
+  editorSection.style.display = 'block';
+  const item = getItem(selectedIndex);
+  const x = currentMode==='region' ? item.cx : item.x;
+  const y = currentMode==='region' ? item.cy : item.y;
+  const size = item.size || (currentMode==='region'?15:11);
+  fieldX.value = x; fieldY.value = y;
+  fieldSize.value = size; fieldSizeNum.value = size;
+}
+[fieldX, fieldY].forEach(f=>{
+  f.addEventListener('input', ()=>{
+    if(selectedIndex===null) return;
+    setItemPos(selectedIndex, currentMode, parseFloat(fieldX.value)||0, parseFloat(fieldY.value)||0);
+    render();
+  });
+});
+[fieldSize, fieldSizeNum].forEach(f=>{
+  f.addEventListener('input', ()=>{
+    if(selectedIndex===null) return;
+    const v = parseFloat(f.value)||10;
+    fieldSize.value = v; fieldSizeNum.value = v;
+    setItemSize(selectedIndex, currentMode, v);
+    render();
+  });
+});
+
+/* ============================================================
+   EXPORT
+   ============================================================ */
+function buildExportText(){
+  if(currentMode === 'region'){
+    const locs = regions[currentRegionKey].locations;
+    const lines = locs.map(loc=>{
+      const sizeStr = loc.size !== undefined ? `, size:${loc.size}` : '';
+      return `      { key:"${loc.key}", name:"${loc.name}", subject:"${loc.subject}", cx:${loc.cx}, cy:${loc.cy}${sizeStr}, image:${loc.image?`"${loc.image}"`:'null'} }`;
+    });
+    return `// REGIONS.${currentRegionKey}.locations —\n[\n${lines.join(',\n')}\n]`;
+  } else {
+    const spots = npcSpots[currentLocationKey];
+    const lines = spots.map(s=>{
+      const sizeStr = s.size !== undefined ? `, size:${s.size}` : '';
+      return `    {x:${s.x}, y:${s.y}, sprite:"${s.sprite}"${sizeStr}}`;
+    });
+    return `// LOCATION_NPC_SPOTS.${currentLocationKey} —\n${currentLocationKey}: [\n${lines.join(',\n')}\n]`;
+  }
+}
+function updateOutput(){
+  outputBox.textContent = buildExportText();
+}
+function copyOutput(){
+  const text = buildExportText();
+  navigator.clipboard.writeText(text).then(()=>{
+    const btns = [document.getElementById('exportBtn'), document.getElementById('copyBtn2')];
+    btns.forEach(b=>{ const orig=b.textContent; b.textContent='✅ Copied!'; setTimeout(()=>b.textContent=orig, 1400); });
+  }).catch(()=>{
+    alert('Copy failed — please select the text in the output box manually.');
+  });
+}
+document.getElementById('exportBtn').addEventListener('click', copyOutput);
+document.getElementById('copyBtn2').addEventListener('click', copyOutput);
+
+/* init */
+populateLocationSelect();
+render();
+
+</script>
+</body>
+</html>
