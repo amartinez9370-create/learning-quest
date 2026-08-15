@@ -141,7 +141,8 @@ const LOCATION_IMAGES = {
   "azurecastle": "assets/locations/azurecastle.webp",
   "hiddenlagoon": "assets/locations/hiddenlagoon.webp",
   "watcherspeak": "assets/locations/watcherspeak.webp",
-  "stonepeakpass": "assets/locations/stonepeakpass.webp"
+  "stonepeakpass": "assets/locations/stonepeakpass.webp",
+  "ironwallfort": "assets/locations/ironwallfort.webp"
 };
 const NPC_SPRITES = {
   "apothecary01": "assets/npcs/apothecary01.webp",
@@ -174,7 +175,7 @@ const REGIONS = {
       { key:"watcherspeak",  name:"Watcher's Peak",  subject:"science", cx:77.9, cy:22.2, image:"watcherspeak" },
       { key:"standingstones",name:"Standing Stones", subject:"english", cx:19.2, cy:62.5, image:null },
       { key:"hiddenlagoon",  name:"Hidden Lagoon",   subject:"gmrc",    cx:48.5, cy:49.4, image:"hiddenlagoon" },
-      { key:"ironwallfort",  name:"Ironwall Fort",   subject:"filipino",cx:81.4, cy:57.1, image:null },
+      { key:"ironwallfort",  name:"Ironwall Fort",   subject:"filipino",cx:81.4, cy:57.1, image:"ironwallfort" },
       { key:"travelerscamp", name:"Traveler's Camp", subject:"mapeh",   cx:78.2, cy:80.5, image:null },
       { key:"stonepeakpass", name:"Stonepeak Pass",  subject:"math",    cx:40.9, cy:81.3, image:"stonepeakpass" }
     ]
@@ -184,38 +185,47 @@ const REGIONS = {
 };
 const LOCATION_NPC_SPOTS = {
   watcherspeak: [
-    {x:18.3, y:52.1, sprite:"fisherman01", size:9},
-    {x:95.9, y:46.8, sprite:"forestherbalist01", size:9},
-    {x:91.7, y:79.4, sprite:"blacksmith01", size:9},
-    {x:72.3, y:88.9, sprite:"forgeworker01", size:9},
-    {x:39.1, y:11.2, sprite:"stablehand01", size:9},
-    {x:20.3, y:30.5, sprite:"farmhand01", size:9},
-    {x:24.9, y:83.9, sprite:"apothecary01", size:9},
-    {x:60.1, y:38.5, sprite:"plainsranger01", size:9},
-    {x:53.9, y:80.5, sprite:"caravanguard01", size:9}
+    {x:22.1, y:58.1, sprite:"fisherman01", size:8},
+    {x:94.8, y:48.2, sprite:"forestherbalist01", size:8},
+    {x:86.8, y:76.8, sprite:"blacksmith01", size:8},
+    {x:70.7, y:87, sprite:"forgeworker01", size:9},
+    {x:32.4, y:18, sprite:"stablehand01", size:8},
+    {x:18.3, y:28.8, sprite:"farmhand01", size:8},
+    {x:24.7, y:84.6, sprite:"apothecary01", size:8},
+    {x:57.9, y:34.8, sprite:"plainsranger01", size:8},
+    {x:51.1, y:74.1, sprite:"caravanguard01", size:9}
   ],
   azurecastle: [
-    {x:34, y:70.1, sprite:"travelingmerchant01", size:14},
-    {x:65.2, y:41.3, sprite:"caravanguard01", size:13},
-    {x:43.3, y:24.9, sprite:"plainsranger01", size:12},
-    {x:85.9, y:71.8, sprite:"elventrader01", size:12},
-    {x:18.9, y:45.5, sprite:"villageelder01", size:12}
+    {x:34.7, y:69.6, sprite:"travelingmerchant01", size:12},
+    {x:65.7, y:38.7, sprite:"caravanguard01", size:11},
+    {x:43, y:25.2, sprite:"plainsranger01", size:9},
+    {x:86.9, y:70.1, sprite:"elventrader01", size:11},
+    {x:18.3, y:45, sprite:"villageelder01", size:9}
   ],
   hiddenlagoon: [
-    {x:14.5, y:18.4, sprite:"youngadventurer", size:11},
-    {x:90, y:20.7, sprite:"farmersdaughter01", size:11},
-    {x:70.8, y:75.1, sprite:"travelingbard", size:12},
-    {x:35.9, y:72.7, sprite:"grovekeeper01", size:11}
+    {x:20.8, y:67, sprite:"youngadventurer", size:9},
+    {x:90.2, y:22.4, sprite:"farmersdaughter01", size:9},
+    {x:68.7, y:73, sprite:"travelingbard", size:10},
+    {x:37, y:73.8, sprite:"grovekeeper01", size:10}
   ],
   stonepeakpass: [
-    {x:45, y:29.6, sprite:"mountainminer01", size:11},
-    {x:36.9, y:49.3, sprite:"woodlandranger01", size:11},
-    {x:58.1, y:15.8, sprite:"caravanguard01", size:11},
-    {x:74.1, y:44.2, sprite:"blacksmith01", size:11},
-    {x:58.7, y:73.8, sprite:"tavernkeeper01", size:11},
-    {x:82.7, y:75.6, sprite:"stablehand01", size:11},
-    {x:64.7, y:36.6, sprite:"fireshrinekeeper01", size:11},
-    {x:19.6, y:66.9, sprite:"farmhand01", size:11}
+    {x:44.7, y:29.1, sprite:"mountainminer01", size:9},
+    {x:36.7, y:53, sprite:"woodlandranger01", size:9},
+    {x:55.2, y:17.9, sprite:"caravanguard01", size:9},
+    {x:75.8, y:40.9, sprite:"blacksmith01", size:9},
+    {x:56.6, y:72.4, sprite:"tavernkeeper01", size:9},
+    {x:82.1, y:74.5, sprite:"stablehand01", size:10},
+    {x:62.9, y:36.2, sprite:"fireshrinekeeper01", size:9},
+    {x:16.1, y:65.3, sprite:"farmhand01", size:9}
+  ],
+  ironwallfort: [
+    {x:12, y:18, sprite:"travelingbard", size:9},
+    {x:6, y:40, sprite:"villageelder01", size:9},
+    {x:47, y:15, sprite:"blacksmith01", size:9},
+    {x:80, y:18, sprite:"caravanguard01", size:9},
+    {x:72, y:42, sprite:"plainsranger01", size:9},
+    {x:78, y:68, sprite:"grovekeeper01", size:9},
+    {x:15, y:82, sprite:"stablehand01", size:9}
   ]
 };
 let regions = JSON.parse(JSON.stringify(REGIONS));
