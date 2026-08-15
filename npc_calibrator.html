@@ -144,7 +144,8 @@ const LOCATION_IMAGES = {
   "stonepeakpass": "assets/locations/stonepeakpass.webp",
   "ironwallfort": "assets/locations/ironwallfort.webp",
   "millbrookfarm": "assets/locations/millbrookfarm.webp",
-  "standingstones": "assets/locations/standingstones.webp"
+  "standingstones": "assets/locations/standingstones.webp",
+  "travelerscamp": "assets/locations/travelerscamp.webp"
 };
 const NPC_SPRITES = {
   "apothecary01": "assets/npcs/apothecary01.webp",
@@ -188,7 +189,7 @@ const REGIONS = {
       { key:"standingstones",name:"Standing Stones", subject:"english", cx:19.2, cy:62.5, image:"standingstones" },
       { key:"hiddenlagoon",  name:"Hidden Lagoon",   subject:"gmrc",    cx:48.5, cy:49.4, image:"hiddenlagoon" },
       { key:"ironwallfort",  name:"Ironwall Fort",   subject:"filipino",cx:81.4, cy:57.1, image:"ironwallfort" },
-      { key:"travelerscamp", name:"Traveler's Camp", subject:"mapeh",   cx:77.4, cy:83.9, image:null },
+      { key:"travelerscamp", name:"Traveler's Camp", subject:"mapeh",   cx:77.4, cy:83.9, image:"travelerscamp" },
       { key:"stonepeakpass", name:"Stonepeak Pass",  subject:"math",    cx:40.9, cy:81.3, image:"stonepeakpass" }
     ]
   },
@@ -260,6 +261,14 @@ const LOCATION_NPC_SPOTS = {
     {x:85.6, y:89.2, sprite:"farmersdaughter01", size:8.5},
     {x:17.2, y:88.7, sprite:"plainsranger01", size:10},
     {x:18.6, y:16.2, sprite:"caravanguard01", size:9}
+  ],
+  travelerscamp: [
+    {x:8, y:22, sprite:"elventrader01", size:9},
+    {x:48, y:25, sprite:"forester01", size:9},
+    {x:82, y:28, sprite:"huntertrapper01", size:9},
+    {x:48, y:52, sprite:"mountainhunter01", size:9},
+    {x:18, y:65, sprite:"travelingbard", size:9},
+    {x:82, y:75, sprite:"caravanguard01", size:9}
   ]
 };
 let regions = JSON.parse(JSON.stringify(REGIONS));
