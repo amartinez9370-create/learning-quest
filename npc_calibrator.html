@@ -142,7 +142,8 @@ const LOCATION_IMAGES = {
   "hiddenlagoon": "assets/locations/hiddenlagoon.webp",
   "watcherspeak": "assets/locations/watcherspeak.webp",
   "stonepeakpass": "assets/locations/stonepeakpass.webp",
-  "ironwallfort": "assets/locations/ironwallfort.webp"
+  "ironwallfort": "assets/locations/ironwallfort.webp",
+  "millbrookfarm": "assets/locations/millbrookfarm.webp"
 };
 const NPC_SPRITES = {
   "apothecary01": "assets/npcs/apothecary01.webp",
@@ -171,7 +172,7 @@ const REGIONS = {
     label: "Windy Plains", term: 1, image: "windyplains", unlocked: true,
     locations: [
       { key:"azurecastle",   name:"Azure Castle",    subject:"ap",      cx:22.3, cy:29.8, image:"azurecastle" },
-      { key:"millbrookfarm", name:"Millbrook Farm",  subject:"epp",     cx:49.2, cy:19.9, image:null },
+      { key:"millbrookfarm", name:"Millbrook Farm",  subject:"epp",     cx:49.2, cy:19.9, image:"millbrookfarm" },
       { key:"watcherspeak",  name:"Watcher's Peak",  subject:"science", cx:77.9, cy:22.2, image:"watcherspeak" },
       { key:"standingstones",name:"Standing Stones", subject:"english", cx:19.2, cy:62.5, image:null },
       { key:"hiddenlagoon",  name:"Hidden Lagoon",   subject:"gmrc",    cx:48.5, cy:49.4, image:"hiddenlagoon" },
@@ -226,6 +227,15 @@ const LOCATION_NPC_SPOTS = {
     {x:69.4, y:46.4, sprite:"plainsranger01", size:9},
     {x:72, y:72.2, sprite:"apothecary01", size:9},
     {x:43, y:68.3, sprite:"forgeworker01", size:9}
+  ],
+  millbrookfarm: [
+    {x:45, y:42, sprite:"mountainminer01", size:9},
+    {x:72, y:32, sprite:"villageelder01", size:9},
+    {x:88, y:45, sprite:"stablehand01", size:9},
+    {x:8, y:45, sprite:"forgeworker01", size:9},
+    {x:12, y:22, sprite:"farmhand01", size:9},
+    {x:28, y:78, sprite:"farmersdaughter01", size:9},
+    {x:60, y:68, sprite:"grovekeeper01", size:9}
   ]
 };
 let regions = JSON.parse(JSON.stringify(REGIONS));
