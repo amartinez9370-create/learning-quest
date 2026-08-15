@@ -541,7 +541,7 @@
       <h2 id="regionTitle">Windy Plains</h2>
       <div class="newgame-row">
         <div class="signedin-indicator-wrap" id="signedInIndicatorWrap"></div>
-        <button class="newgame-btn" onclick="openLeaderboard()">🏆 Leaderboard</button>
+        <button class="newgame-btn" id="leaderboardBtn" onclick="openLeaderboard()" style="display:none;">🏆 Leaderboard</button>
         <button class="newgame-btn" onclick="openCharacterSelect()">👤 New Game</button>
       </div>
     </div>
@@ -2108,6 +2108,11 @@ function updateSignInUI(){
         </button>`;
     }
   }
+
+  // Leaderboard requires an account (it reads other players' data, gated by
+  // Firestore rules to signed-in users only) — hide the entry point otherwise.
+  const lbBtn = document.getElementById('leaderboardBtn');
+  if(lbBtn) lbBtn.style.display = cloudUser ? 'inline-block' : 'none';
 }
 
 function toggleSignedInPopover(){
@@ -2501,6 +2506,10 @@ async function openLeaderboard(){
   const body = document.getElementById('leaderboardBody');
   body.innerHTML = `<div class="lb-loading">Loading leaderboard...</div>`;
 
+  if(!cloudUser){
+    body.innerHTML = `<div class="lb-empty">Sign in with Google to see the leaderboard and join the rankings! ⭐</div>`;
+    return;
+  }
   if(!firebaseReady){
     body.innerHTML = `<div class="lb-error">Couldn't connect just yet. Try again in a moment.</div>`;
     return;
