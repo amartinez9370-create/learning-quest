@@ -69,8 +69,11 @@
 
   /* ---------- REGION MAP ---------- */
   .region-wrap{ position:relative; max-width:1100px; margin:0 auto; }
-  .region-img-box{ position:relative; width:100%; border:4px solid var(--border); box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 14px 32px rgba(0,0,0,0.4); overflow:hidden; border-radius:16px; }
-  .region-img-box img{ display:block; width:100%; height:auto; }
+  .region-img-box{ position:relative; width:100%; }
+  .region-img-frame{ position:relative; width:100%; border:4px solid var(--border); box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 14px 32px rgba(0,0,0,0.4); overflow:hidden; border-radius:16px; }
+  .region-img-frame img{ display:block; width:100%; height:auto; }
+  .region-zones-layer{ position:absolute; inset:0; pointer-events:none; }
+  .region-zones-layer .region-zone{ pointer-events:auto; }
   .region-zone{
     position:absolute; transform:translate(-50%,-50%);
     aspect-ratio:1/1; border-radius:50%;
@@ -218,8 +221,11 @@
 
   /* ---------- RENDERED LOCAL MAP ---------- */
   .localmap-wrap{ position:relative; max-width:1100px; margin:0 auto; }
-  .localmap-img-box{ position:relative; width:100%; border:4px solid var(--border); box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 14px 32px rgba(0,0,0,0.4); overflow:hidden; border-radius:16px; }
-  .localmap-img-box img{ display:block; width:100%; height:auto; }
+  .localmap-img-box{ position:relative; width:100%; }
+  .localmap-img-frame{ position:relative; width:100%; border:4px solid var(--border); box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 14px 32px rgba(0,0,0,0.4); overflow:hidden; border-radius:16px; }
+  .localmap-img-frame img{ display:block; width:100%; height:auto; }
+  .localmap-zones-layer{ position:absolute; inset:0; pointer-events:none; }
+  .localmap-zones-layer .npc-zone{ pointer-events:auto; }
   .npc-zone{ position:absolute; transform:translate(-50%,-50%); cursor:pointer; text-align:center; width:11%; }
   .npc-marker{
     width:100%; padding-top:100%; border-radius:50%; position:relative;
@@ -2645,7 +2651,7 @@ function renderRegionMap(){
   document.getElementById('regionTitle').textContent = region.label;
   const box = document.getElementById('regionImgBox');
   if(!region.unlocked || !region.image){
-    box.innerHTML = `<div style="padding:60px 20px; text-align:center; color:var(--text-dim); font-family:'Baloo 2',cursive;">🔒 This region is locked.<br>Complete the current region to unlock it.</div>`;
+    box.innerHTML = `<div class="region-img-frame"><div style="padding:60px 20px; text-align:center; color:var(--text-dim); font-family:'Baloo 2',cursive;">🔒 This region is locked.<br>Complete the current region to unlock it.</div></div>`;
     return;
   }
   const imgSrc = REGION_IMAGES[region.image];
@@ -2662,7 +2668,10 @@ function renderRegionMap(){
         <div class="region-zone-label">${loc.name}${starDisplay?`<div class="region-zone-stars">${starDisplay}</div>`:''}</div>
       </div>`;
   }).join('');
-  box.innerHTML = `<img src="${imgSrc}" alt="${region.label}"/>` + zonesHtml;
+  // The image lives in its own clipped (rounded-corner) frame; zone markers/labels sit in an
+  // unclipped sibling layer positioned identically over it, so labels near the image edge
+  // can spill slightly past the border without being cut off by overflow:hidden.
+  box.innerHTML = `<div class="region-img-frame"><img src="${imgSrc}" alt="${region.label}"/></div><div class="region-zones-layer">${zonesHtml}</div>`;
 }
 
 function pickRegionLocation(locKey){
@@ -2714,7 +2723,7 @@ function renderLocalMap(loc){
         <div class="npc-marker ${spriteSrc?'has-sprite':''}">${spriteInner}</div>
       </div>`;
   }).join('');
-  box.innerHTML = `<img src="${imgSrc}" alt="${loc.name}"/>` + npcHtml;
+  box.innerHTML = `<div class="localmap-img-frame"><img src="${imgSrc}" alt="${loc.name}"/></div><div class="localmap-zones-layer">${npcHtml}</div>`;
 }
 
 function pickLocalMapNpc(topicIdx){
