@@ -59,6 +59,11 @@
     position:absolute; right:-7px; bottom:-7px; width:14px; height:14px; border-radius:50%;
     background:var(--accent); border:2px solid #0a0a12; cursor:nwse-resize; z-index:5;
   }
+  .marker .resize-handle-y{
+    position:absolute; left:50%; bottom:-7px; width:14px; height:14px; border-radius:50%;
+    background:var(--accent-2); border:2px solid #0a0a12; cursor:ns-resize; z-index:5;
+    transform:translateX(-50%);
+  }
 
   .sidebar{ background:var(--panel); border-left:1px solid var(--border); padding:18px; overflow-y:auto; max-height:calc(100vh - 54px); position:sticky; top:54px; }
   .sidebar h2{ font-size:12px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin:0 0 10px; }
@@ -121,8 +126,9 @@
       <h2>Selected</h2>
       <div class="field-row"><label>X %</label><input type="number" id="fieldX" step="0.5"/></div>
       <div class="field-row"><label>Y %</label><input type="number" id="fieldY" step="0.5"/></div>
-      <div class="field-row"><label>Size</label><input type="range" id="fieldSize" min="4" max="30" step="0.5"/><input type="number" id="fieldSizeNum" step="0.5" style="width:60px;"/></div>
-      <div class="hint">Drag the marker to move. Drag the bottom-right handle to resize. Fields update live and can be typed directly.</div>
+      <div class="field-row"><label>Width</label><input type="range" id="fieldSize" min="4" max="40" step="0.5"/><input type="number" id="fieldSizeNum" step="0.5" style="width:60px;"/></div>
+      <div class="field-row" id="fieldSizeYRow" style="display:none;"><label>Height</label><input type="range" id="fieldSizeY" min="4" max="40" step="0.5"/><input type="number" id="fieldSizeYNum" step="0.5" style="width:60px;"/></div>
+      <div class="hint" id="editorHint">Drag the marker to move. Drag the bottom-right handle to resize. Fields update live and can be typed directly.</div>
     </div>
     <div class="section">
       <h2>Export</h2>
@@ -189,7 +195,7 @@ const REGIONS = {
       { key:"standingstones",name:"Standing Stones", subject:"english", cx:19.2, cy:62.5, image:"standingstones" },
       { key:"hiddenlagoon",  name:"Hidden Lagoon",   subject:"gmrc",    cx:48.5, cy:49.4, image:"hiddenlagoon" },
       { key:"ironwallfort",  name:"Ironwall Fort",   subject:"filipino",cx:81.4, cy:57.1, image:"ironwallfort" },
-      { key:"travelerscamp", name:"Traveler's Camp", subject:"mapeh",   cx:77.4, cy:83.9, image:"travelerscamp" },
+      { key:"travelerscamp", name:"Traveler's Camp", subject:"mapeh",   cx:77, cy:81.5, image:"travelerscamp" },
       { key:"stonepeakpass", name:"Stonepeak Pass",  subject:"math",    cx:40.9, cy:81.3, image:"stonepeakpass" }
     ]
   },
@@ -289,6 +295,10 @@ const fieldX = document.getElementById('fieldX');
 const fieldY = document.getElementById('fieldY');
 const fieldSize = document.getElementById('fieldSize');
 const fieldSizeNum = document.getElementById('fieldSizeNum');
+const fieldSizeYRow = document.getElementById('fieldSizeYRow');
+const fieldSizeY = document.getElementById('fieldSizeY');
+const fieldSizeYNum = document.getElementById('fieldSizeYNum');
+const editorHint = document.getElementById('editorHint');
 const outputBox = document.getElementById('outputBox');
 
 /* ============================================================
@@ -362,13 +372,19 @@ function render(){
     renderList(region.locations, (loc)=>loc.name);
     region.locations.forEach((loc,i)=>{
       const size = loc.size || 15; // default matches original CSS width:15%
+      const sizeY = loc.sizeY !== undefined ? loc.sizeY : size;
       const el = document.createElement('div');
       el.className = 'marker zone' + (i===selectedIndex?' selected':'');
       el.style.left = loc.cx + '%';
       el.style.top = loc.cy + '%';
       el.style.width = size + '%';
-      el.style.aspectRatio = '1 / 1';
-      el.innerHTML = `<div class="zlabel">${loc.name}</div><div class="resize-handle"></div>`;
+      // Region images are always 3:2 (width:height). "height:X%" is relative to the parent's
+      // height, while "width:X%" is relative to the box's own width — different reference
+      // frames on a non-square image. Multiplying by 1.5 (the image's aspect ratio) converts
+      // sizeY into a height percentage that actually matches, so size===sizeY renders as a
+      // true circle rather than a squashed ellipse.
+      el.style.height = (sizeY * 1.5) + '%';
+      el.innerHTML = `<div class="zlabel">${loc.name}</div><div class="resize-handle"></div><div class="resize-handle-y"></div>`;
       attachDragResize(el, i, 'region');
       canvasWrap.appendChild(el);
     });
@@ -423,11 +439,12 @@ function renderList(items, labelFn){
    ============================================================ */
 function attachDragResize(el, index, mode){
   const handle = el.querySelector('.resize-handle');
-  let dragging = false, resizing = false;
-  let startPX=0, startPY=0, startX=0, startY=0, startSize=0;
+  const handleY = el.querySelector('.resize-handle-y'); // only present for region markers
+  let dragging = false, resizing = false, resizingY = false;
+  let startPX=0, startPY=0, startX=0, startY=0, startSize=0, startSizeY=0;
 
   el.addEventListener('pointerdown', (e)=>{
-    if(e.target === handle) return;
+    if(e.target === handle || e.target === handleY) return;
     e.preventDefault();
     selectedIndex = index;
     dragging = true;
@@ -455,8 +472,22 @@ function attachDragResize(el, index, mode){
     updateEditor();
   });
 
+  if(handleY){
+    handleY.addEventListener('pointerdown', (e)=>{
+      e.preventDefault(); e.stopPropagation();
+      selectedIndex = index;
+      resizingY = true;
+      handleY.setPointerCapture(e.pointerId);
+      startPY = e.clientY;
+      const item = getItem(index);
+      startSizeY = item.sizeY !== undefined ? item.sizeY : (item.size || 15);
+      highlightListItem(index);
+      updateEditor();
+    });
+  }
+
   window.addEventListener('pointermove', (e)=>{
-    if(!dragging && !resizing) return;
+    if(!dragging && !resizing && !resizingY) return;
     const rect = canvasWrap.getBoundingClientRect();
     if(dragging){
       const dxPct = ((e.clientX - startPX) / rect.width) * 100;
@@ -471,15 +502,30 @@ function attachDragResize(el, index, mode){
       let ns = clamp(startSize + dxPct, 3, 40);
       setItemSize(index, mode, ns);
       el.style.width = ns + '%';
-      if(mode==='region'){ /* aspect-ratio keeps it square */ }
-      else { el.style.height = (ns*1.3) + '%'; }
+      if(mode==='region'){
+        // Width changed but height (sizeY) didn't move with it — recompute using current sizeY
+        const item = getItem(index);
+        const sizeY = item.sizeY !== undefined ? item.sizeY : ns;
+        el.style.height = (sizeY * 1.5) + '%';
+      } else {
+        el.style.height = (ns*1.3) + '%';
+      }
+    }
+    if(resizingY){
+      // Vertical drag on the Y-handle adjusts sizeY only, independent of width
+      const dyPct = ((e.clientY - startPY) / rect.height) * 100;
+      // Convert the on-screen % (relative to parent height) back into the same units as size,
+      // reversing the *1.5 conversion used for rendering, so dragging feels proportional.
+      let nsY = clamp(startSizeY + (dyPct / 1.5), 3, 40);
+      setItemSizeY(index, nsY);
+      el.style.height = (nsY * 1.5) + '%';
     }
     updateEditor();
     updateOutput();
     renderListLive();
   });
 
-  window.addEventListener('pointerup', ()=>{ dragging=false; resizing=false; });
+  window.addEventListener('pointerup', ()=>{ dragging=false; resizing=false; resizingY=false; });
 }
 
 function highlightListItem(i){
@@ -513,6 +559,10 @@ function setItemSize(i, mode, s){
   const item = getItem(i);
   item.size = round1(s);
 }
+function setItemSizeY(i, sY){
+  const item = getItem(i);
+  item.sizeY = round1(sY);
+}
 function round1(n){ return Math.round(n*10)/10; }
 
 /* ============================================================
@@ -530,6 +580,15 @@ function updateEditor(){
   const size = item.size || (currentMode==='region'?15:11);
   fieldX.value = x; fieldY.value = y;
   fieldSize.value = size; fieldSizeNum.value = size;
+  if(currentMode === 'region'){
+    fieldSizeYRow.style.display = 'flex';
+    const sizeY = item.sizeY !== undefined ? item.sizeY : size;
+    fieldSizeY.value = sizeY; fieldSizeYNum.value = sizeY;
+    editorHint.textContent = 'Drag to move. Teal handle (bottom-right) resizes width, gold handle (bottom-center) resizes height independently — useful for ellipse-shaped tap zones. Fields update live and can be typed directly.';
+  } else {
+    fieldSizeYRow.style.display = 'none';
+    editorHint.textContent = 'Drag the marker to move. Drag the bottom-right handle to resize. Fields update live and can be typed directly.';
+  }
 }
 [fieldX, fieldY].forEach(f=>{
   f.addEventListener('input', ()=>{
@@ -547,6 +606,15 @@ function updateEditor(){
     render();
   });
 });
+[fieldSizeY, fieldSizeYNum].forEach(f=>{
+  f.addEventListener('input', ()=>{
+    if(selectedIndex===null || currentMode !== 'region') return;
+    const v = parseFloat(f.value)||10;
+    fieldSizeY.value = v; fieldSizeYNum.value = v;
+    setItemSizeY(selectedIndex, v);
+    render();
+  });
+});
 
 /* ============================================================
    EXPORT
@@ -556,7 +624,8 @@ function buildExportText(){
     const locs = regions[currentRegionKey].locations;
     const lines = locs.map(loc=>{
       const sizeStr = loc.size !== undefined ? `, size:${loc.size}` : '';
-      return `      { key:"${loc.key}", name:"${loc.name}", subject:"${loc.subject}", cx:${loc.cx}, cy:${loc.cy}${sizeStr}, image:${loc.image?`"${loc.image}"`:'null'} }`;
+      const sizeYStr = loc.sizeY !== undefined ? `, sizeY:${loc.sizeY}` : '';
+      return `      { key:"${loc.key}", name:"${loc.name}", subject:"${loc.subject}", cx:${loc.cx}, cy:${loc.cy}${sizeStr}${sizeYStr}, image:${loc.image?`"${loc.image}"`:'null'} }`;
     });
     return `// REGIONS.${currentRegionKey}.locations —\n[\n${lines.join(',\n')}\n]`;
   } else {

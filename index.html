@@ -76,8 +76,8 @@
   .region-zones-layer .region-zone{ pointer-events:auto; }
   .region-zone{
     position:absolute; transform:translate(-50%,-50%);
-    aspect-ratio:1/1; border-radius:50%;
-    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    border-radius:50%;
+    cursor:pointer;
   }
   .region-zone-inner{
     position:absolute; inset:0; border-radius:50%;
@@ -2662,8 +2662,18 @@ function renderRegionMap(){
     const mastered = regionLocationMastered(loc.subject);
     const starDisplay = mastered ? '⭐⭐⭐' : (stars>0 ? `⭐ ${stars}/${maxStars}` : '');
     const size = loc.size !== undefined ? loc.size : 15;
+    // sizeY lets the tap zone be an ellipse (independent height-to-width ratio) rather than a
+    // fixed circle. Defaults to matching size, so any location without sizeY set behaves exactly
+    // as before.
+    //
+    // Region map images are always 3:2 (width:height). A CSS "width:X%" is a % of the box's own
+    // width, but "height:X%" is a % of the PARENT's height — a different reference frame. For
+    // size === sizeY to render as a true circle (matching pixel width and height), the height
+    // percentage must be scaled by the image's aspect ratio (1.5) to compensate.
+    const sizeY = loc.sizeY !== undefined ? loc.sizeY : size;
+    const heightPct = sizeY * 1.5;
     return `
-      <div class="region-zone" style="left:${loc.cx}%; top:${loc.cy}%; width:${size}%;" onclick="pickRegionLocation('${loc.key}')">
+      <div class="region-zone" style="left:${loc.cx}%; top:${loc.cy}%; width:${size}%; height:${heightPct}%;" onclick="pickRegionLocation('${loc.key}')">
         <div class="region-zone-inner"></div>
         <div class="region-zone-label">${loc.name}${starDisplay?`<div class="region-zone-stars">${starDisplay}</div>`:''}</div>
       </div>`;
