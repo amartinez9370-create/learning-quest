@@ -94,8 +94,11 @@
     display:flex; flex-direction:column; align-items:center; gap:2px;
   }
   .region-zone-stars{ font-size:clamp(9px,1.6vw,12px); color:var(--yellow); text-shadow:1px 1px 0 rgba(0,0,0,0.6); pointer-events:none; }
-  .region-title-banner{ text-align:center; margin-bottom:10px; position:relative; }
-  .region-title-banner h2{ font-size:clamp(16px,4vw,20px); color:var(--yellow); }
+  .region-title-banner{ text-align:left; margin-bottom:10px; position:relative; }
+  .region-title-banner .app-logo{
+    font-family:'Baloo 2',cursive; font-weight:700; font-size:clamp(18px,4.4vw,26px); color:var(--yellow);
+    text-shadow:2px 2px 0 #7a1230; letter-spacing:0.5px; display:inline-block;
+  }
   .newgame-row{ position:absolute; right:0; top:2px; display:flex; align-items:center; gap:8px; }
   .newgame-btn{
     font-family:'Baloo 2',cursive; font-size:12px; padding:7px 12px; border-radius:8px; cursor:pointer;
@@ -211,13 +214,15 @@
   .lb-stars{ font-family:'Baloo 2',cursive; font-weight:700; font-size:14px; color:var(--yellow); flex-shrink:0; }
   .lb-empty, .lb-loading, .lb-error{ text-align:center; padding:40px 20px; color:var(--text-dim); font-size:14px; line-height:1.7; }
   .lb-error{ color:var(--red); }
-  .term-tabs{ display:flex; gap:8px; justify-content:center; margin-bottom:14px; flex-wrap:wrap; }
+  .term-tabs{ display:flex; gap:8px; justify-content:flex-start; margin-bottom:14px; flex-wrap:wrap; }
   .term-tab{
     font-family:'Baloo 2',cursive; font-size:12px; padding:8px 14px; border-radius:8px; cursor:pointer;
     background:var(--panel); border:2px solid var(--panel-light); color:var(--text-dim);
+    display:flex; align-items:center; gap:6px;
   }
   .term-tab.active{ background:var(--yellow); color:#0a0916; border-color:var(--yellow); }
   .term-tab.locked{ opacity:0.5; cursor:not-allowed; }
+  .term-tab-stars{ font-size:11px; opacity:0.85; }
 
   /* ---------- RENDERED LOCAL MAP ---------- */
   .localmap-wrap{ position:relative; max-width:1100px; margin:0 auto; }
@@ -240,7 +245,15 @@
     background:rgba(0,0,0,0.32); border-radius:50%; transform:translateX(-50%); z-index:1;
   }
   .npc-marker-icon{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:clamp(16px,3.2vw,26px); }
-  .npc-sprite-img{ position:absolute; left:50%; bottom:0; height:100%; width:auto; max-width:none; max-height:100%; object-fit:contain; filter:drop-shadow(2px 4px 2px rgba(0,0,0,0.35)); z-index:2; }
+  .npc-sprite-img{
+    position:absolute; left:50%; bottom:0; height:100%; width:auto; max-width:none; max-height:100%; object-fit:contain;
+    z-index:2;
+    filter:
+      drop-shadow(0 0 3px rgba(255,224,130,0.95))
+      drop-shadow(0 0 3px rgba(255,224,130,0.95))
+      drop-shadow(0 0 7px rgba(255,224,130,0.55))
+      drop-shadow(2px 4px 2px rgba(0,0,0,0.35));
+  }
   .npc-zone:hover .npc-marker, .npc-zone:active .npc-marker{ transform:scale(1.1); }
   .npc-marker{ transition:transform .12s; }
   .npc-zone-stars{
@@ -551,7 +564,7 @@
   <!-- REGION MAP -->
   <div class="screen active" id="screen-region">
     <div class="region-title-banner">
-      <h2 id="regionTitle">Windy Plains</h2>
+      <span class="app-logo">⚔️ Learning Quest</span>
       <div class="newgame-row">
         <div class="signedin-indicator-wrap" id="signedInIndicatorWrap"></div>
         <button class="newgame-btn" id="leaderboardBtn" onclick="openLeaderboard()" style="display:none;">🏆 Leaderboard</button>
@@ -603,7 +616,7 @@
     <div class="topbar"><span class="crumb" onclick="goToRegionMap()">← REGION MAP</span><span id="localMapSubjectLabel"></span></div>
     <div class="hud">
       <span>QUESTS: <b id="localHudQuests">0</b>/<span id="localHudTotal">0</span></span>
-      <span>⭐ STARS: <b id="localHudStars">0</b></span>
+      <span>⭐ STARS: <b id="localHudStars">0</b>/<span id="localHudMaxStars">0</span></span>
     </div>
     <div class="localmap-wrap">
       <div class="localmap-img-box" id="localMapImgBox"></div>
@@ -2570,6 +2583,11 @@ function regionLocationMastered(subjectKey){
   // "3 stars per topic will tag the location as mastered"
   return PROGRESS[subjectKey].every(s=>s>=3);
 }
+function totalStarsForRegion(regionKey){
+  const region = REGIONS[regionKey];
+  if(!region) return 0;
+  return region.locations.reduce((sum,loc)=>sum + regionStarsForSubject(loc.subject), 0);
+}
 
 function goToRegionMap(){
   currentSubjectKey = null;
@@ -2636,7 +2654,8 @@ function renderRegionTabs(){
   tabs.innerHTML = Object.keys(REGIONS).map(rk=>{
     const r = REGIONS[rk];
     const cls = 'term-tab' + (rk===currentRegionKey?' active':'') + (!r.unlocked?' locked':'');
-    return `<div class="${cls}" onclick="${r.unlocked?`selectRegion('${rk}')`:''}">${r.label}${r.unlocked?'':' 🔒'}</div>`;
+    const starsHtml = r.unlocked ? `<span class="term-tab-stars">⭐ ${totalStarsForRegion(rk)}</span>` : '';
+    return `<div class="${cls}" onclick="${r.unlocked?`selectRegion('${rk}')`:''}">${r.label}${r.unlocked?'':' 🔒'}${starsHtml}</div>`;
   }).join('');
 }
 function selectRegion(rk){
@@ -2648,7 +2667,6 @@ function selectRegion(rk){
 function renderRegionMap(){
   renderRegionTabs();
   const region = REGIONS[currentRegionKey];
-  document.getElementById('regionTitle').textContent = region.label;
   const box = document.getElementById('regionImgBox');
   if(!region.unlocked || !region.image){
     box.innerHTML = `<div class="region-img-frame"><div style="padding:60px 20px; text-align:center; color:var(--text-dim); font-family:'Baloo 2',cursive;">🔒 This region is locked.<br>Complete the current region to unlock it.</div></div>`;
@@ -2712,6 +2730,7 @@ function renderLocalMap(loc){
   document.getElementById('localHudQuests').textContent = doneCount;
   document.getElementById('localHudTotal').textContent = topics.length;
   document.getElementById('localHudStars').textContent = totalStars;
+  document.getElementById('localHudMaxStars').textContent = topics.length * 3;
 
   const box = document.getElementById('localMapImgBox');
   const imgSrc = LOCATION_IMAGES[loc.image];
