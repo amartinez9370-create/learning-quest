@@ -214,7 +214,8 @@
   .lb-stars{ font-family:'Baloo 2',cursive; font-weight:700; font-size:14px; color:var(--yellow); flex-shrink:0; }
   .lb-empty, .lb-loading, .lb-error{ text-align:center; padding:40px 20px; color:var(--text-dim); font-size:14px; line-height:1.7; }
   .lb-error{ color:var(--red); }
-  .term-tabs{ display:flex; gap:8px; justify-content:flex-start; margin-bottom:14px; flex-wrap:wrap; }
+  .term-tabs-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+  .term-tabs{ display:flex; gap:8px; justify-content:flex-start; flex-wrap:wrap; }
   .term-tab{
     font-family:'Baloo 2',cursive; font-size:12px; padding:8px 14px; border-radius:8px; cursor:pointer;
     background:var(--panel); border:2px solid var(--panel-light); color:var(--text-dim);
@@ -222,7 +223,10 @@
   }
   .term-tab.active{ background:var(--yellow); color:#0a0916; border-color:var(--yellow); }
   .term-tab.locked{ opacity:0.5; cursor:not-allowed; }
-  .term-tab-stars{ font-size:11px; opacity:0.85; }
+  .grand-total-stars{
+    font-family:'Baloo 2',cursive; font-size:13px; color:var(--yellow); white-space:nowrap;
+    background:var(--panel); border:2px solid var(--panel-light); border-radius:8px; padding:7px 14px;
+  }
 
   /* ---------- RENDERED LOCAL MAP ---------- */
   .localmap-wrap{ position:relative; max-width:1100px; margin:0 auto; }
@@ -249,9 +253,9 @@
     position:absolute; left:50%; bottom:0; height:100%; width:auto; max-width:none; max-height:100%; object-fit:contain;
     z-index:2;
     filter:
-      drop-shadow(0 0 3px rgba(255,224,130,0.95))
-      drop-shadow(0 0 3px rgba(255,224,130,0.95))
-      drop-shadow(0 0 7px rgba(255,224,130,0.55))
+      drop-shadow(0 0 3px rgba(255,255,255,0.95))
+      drop-shadow(0 0 3px rgba(255,255,255,0.95))
+      drop-shadow(0 0 7px rgba(255,255,255,0.55))
       drop-shadow(2px 4px 2px rgba(0,0,0,0.35));
   }
   .npc-zone:hover .npc-marker, .npc-zone:active .npc-marker{ transform:scale(1.1); }
@@ -571,7 +575,10 @@
         <button class="newgame-btn" onclick="openCharacterSelect()">👤 New Game</button>
       </div>
     </div>
-    <div class="term-tabs" id="termTabs"></div>
+    <div class="term-tabs-row">
+      <div class="term-tabs" id="termTabs"></div>
+      <div class="grand-total-stars" id="grandTotalStars"></div>
+    </div>
     <div class="region-wrap">
       <div class="region-img-box" id="regionImgBox"></div>
     </div>
@@ -2588,6 +2595,9 @@ function totalStarsForRegion(regionKey){
   if(!region) return 0;
   return region.locations.reduce((sum,loc)=>sum + regionStarsForSubject(loc.subject), 0);
 }
+function totalStarsAllRegions(){
+  return Object.keys(REGIONS).reduce((sum,rk)=>sum + totalStarsForRegion(rk), 0);
+}
 
 function goToRegionMap(){
   currentSubjectKey = null;
@@ -2654,9 +2664,10 @@ function renderRegionTabs(){
   tabs.innerHTML = Object.keys(REGIONS).map(rk=>{
     const r = REGIONS[rk];
     const cls = 'term-tab' + (rk===currentRegionKey?' active':'') + (!r.unlocked?' locked':'');
-    const starsHtml = r.unlocked ? `<span class="term-tab-stars">⭐ ${totalStarsForRegion(rk)}</span>` : '';
-    return `<div class="${cls}" onclick="${r.unlocked?`selectRegion('${rk}')`:''}">${r.label}${r.unlocked?'':' 🔒'}${starsHtml}</div>`;
+    return `<div class="${cls}" onclick="${r.unlocked?`selectRegion('${rk}')`:''}">${r.label}${r.unlocked?'':' 🔒'}</div>`;
   }).join('');
+  const totalEl = document.getElementById('grandTotalStars');
+  if(totalEl) totalEl.textContent = `⭐ ${totalStarsAllRegions()} total`;
 }
 function selectRegion(rk){
   if(!REGIONS[rk].unlocked) return;
