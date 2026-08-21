@@ -2146,22 +2146,31 @@ window.addEventListener('lq-firebase-ready', ()=>{
 function sumProgressStars(progressObj){
   return Object.values(progressObj).reduce((sum,arr)=>sum + arr.reduce((a,b)=>a+b,0), 0);
 }
+function mergeProgressMax(progressA, progressB){
+  const merged = {};
+  Object.keys(PROGRESS).forEach(subj=>{
+    const a = progressA[subj] || [];
+    const b = progressB[subj] || [];
+    merged[subj] = PROGRESS[subj].map((_,i)=> Math.max(a[i]||0, b[i]||0));
+  });
+  return merged;
+}
 
 function promptProgressConflict(cloudProgress, localStars, cloudStars){
   // Stash the cloud copy so the button handlers below can get at it without
   // threading it through onclick attribute strings.
   window._lqPendingCloudProgress = cloudProgress;
   window._lqPendingLocalProgress = JSON.parse(JSON.stringify(PROGRESS)); // snapshot before any changes
+  const mergedStars = sumProgressStars(mergeProgressMax(cloudProgress, window._lqPendingLocalProgress));
   owOpenModal(`
     <div class="modal-head"><div class="em">⭐</div><div class="nm">Progress Found</div></div>
     <div class="modal-text">
-      This device has <b>${localStars} ⭐</b> of progress, and your account <b>${playerName || 'account'}</b> already has <b>${cloudStars} ⭐</b> saved.
-      <br><br>Which progress should we keep?
+      This device and your account both have saved progress. Which should we keep?
     </div>
     <div class="modal-btnrow" style="display:flex; flex-direction:column; gap:10px;">
-      <button class="pixel-btn" onclick="resolveProgressConflict('merge')">⭐ Keep the best of both (recommended)</button>
-      <button class="pixel-btn" onclick="resolveProgressConflict('cloud')">☁️ Use my account's progress (${cloudStars} ⭐)</button>
-      <button class="pixel-btn" onclick="resolveProgressConflict('local')">📱 Use this device's progress (${localStars} ⭐)</button>
+      <button class="pixel-btn" onclick="resolveProgressConflict('merge')">Merge Progress (${mergedStars} ⭐)</button>
+      <button class="pixel-btn" onclick="resolveProgressConflict('cloud')">Keep Cloud Progress (${cloudStars} ⭐)</button>
+      <button class="pixel-btn" onclick="resolveProgressConflict('local')">Keep Local Progress (${localStars} ⭐)</button>
     </div>`);
 }
 
@@ -2177,11 +2186,7 @@ function resolveProgressConflict(choice){
       if(PROGRESS[subj]) PROGRESS[subj] = localProgress[subj];
     });
   } else { // 'merge' — per-topic max, so neither side loses anything
-    Object.keys(PROGRESS).forEach(subj=>{
-      const cloudArr = cloudProgress[subj] || [];
-      const localArr = localProgress[subj] || [];
-      PROGRESS[subj] = PROGRESS[subj].map((_,i)=> Math.max(cloudArr[i]||0, localArr[i]||0));
-    });
+    PROGRESS = mergeProgressMax(cloudProgress, localProgress);
   }
   saveProgressLocal();
   cloudSyncProgress(); // push the resolved result back so both sides converge
