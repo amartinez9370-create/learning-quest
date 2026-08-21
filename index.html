@@ -2143,22 +2143,78 @@ window.addEventListener('lq-firebase-ready', ()=>{
   window.LQFirebase.onAuthChange(handleAuthStateChange);
 });
 
+function sumProgressStars(progressObj){
+  return Object.values(progressObj).reduce((sum,arr)=>sum + arr.reduce((a,b)=>a+b,0), 0);
+}
+
+function promptProgressConflict(cloudProgress, localStars, cloudStars){
+  // Stash the cloud copy so the button handlers below can get at it without
+  // threading it through onclick attribute strings.
+  window._lqPendingCloudProgress = cloudProgress;
+  window._lqPendingLocalProgress = JSON.parse(JSON.stringify(PROGRESS)); // snapshot before any changes
+  owOpenModal(`
+    <div class="modal-head"><div class="em">⭐</div><div class="nm">Progress Found</div></div>
+    <div class="modal-text">
+      This device has <b>${localStars} ⭐</b> of progress, and your account <b>${playerName || 'account'}</b> already has <b>${cloudStars} ⭐</b> saved.
+      <br><br>Which progress should we keep?
+    </div>
+    <div class="modal-btnrow" style="display:flex; flex-direction:column; gap:10px;">
+      <button class="pixel-btn" onclick="resolveProgressConflict('merge')">⭐ Keep the best of both (recommended)</button>
+      <button class="pixel-btn" onclick="resolveProgressConflict('cloud')">☁️ Use my account's progress (${cloudStars} ⭐)</button>
+      <button class="pixel-btn" onclick="resolveProgressConflict('local')">📱 Use this device's progress (${localStars} ⭐)</button>
+    </div>`);
+}
+
+function resolveProgressConflict(choice){
+  const cloudProgress = window._lqPendingCloudProgress;
+  const localProgress = window._lqPendingLocalProgress;
+  if(choice === 'cloud'){
+    Object.keys(cloudProgress).forEach(subj=>{
+      if(PROGRESS[subj]) PROGRESS[subj] = cloudProgress[subj];
+    });
+  } else if(choice === 'local'){
+    Object.keys(localProgress).forEach(subj=>{
+      if(PROGRESS[subj]) PROGRESS[subj] = localProgress[subj];
+    });
+  } else { // 'merge' — per-topic max, so neither side loses anything
+    Object.keys(PROGRESS).forEach(subj=>{
+      const cloudArr = cloudProgress[subj] || [];
+      const localArr = localProgress[subj] || [];
+      PROGRESS[subj] = PROGRESS[subj].map((_,i)=> Math.max(cloudArr[i]||0, localArr[i]||0));
+    });
+  }
+  saveProgressLocal();
+  cloudSyncProgress(); // push the resolved result back so both sides converge
+  delete window._lqPendingCloudProgress;
+  delete window._lqPendingLocalProgress;
+  owCloseModal();
+  renderRegionMap();
+}
+
 async function handleAuthStateChange(user){
   cloudUser = user;
   if(user){
-    // Signed in: try to load their cloud progress. If they have some, it wins
-    // over whatever's in this browser's localStorage (cloud is the source of truth
-    // once signed in), so progress follows them across devices.
+    // Signed in: try to load their cloud progress.
     const result = await window.LQFirebase.loadProgress(user.uid);
     if(result.ok && result.data){
       const d = result.data;
       if(d.gender) playerGender = d.gender;
       if(d.playerName) playerName = d.playerName;
       if(d.progress){
-        Object.keys(d.progress).forEach(subj=>{
-          if(PROGRESS[subj]) PROGRESS[subj] = d.progress[subj];
-        });
-        saveProgressLocal(); // keep local copy in sync so it's available if they later play signed-out
+        const localStars = sumProgressStars(PROGRESS);
+        const cloudStars = sumProgressStars(d.progress);
+        // Only worth asking about when BOTH sides actually have some progress and they
+        // differ — a brand-new account (cloud empty) or a fresh device (local empty)
+        // has an obvious right answer, so just proceed without interrupting anyone.
+        const progressDiffers = JSON.stringify(d.progress) !== JSON.stringify(PROGRESS);
+        if(localStars > 0 && cloudStars > 0 && progressDiffers){
+          promptProgressConflict(d.progress, localStars, cloudStars);
+        } else {
+          Object.keys(d.progress).forEach(subj=>{
+            if(PROGRESS[subj]) PROGRESS[subj] = d.progress[subj];
+          });
+          saveProgressLocal(); // keep local copy in sync so it's available if they later play signed-out
+        }
       }
     }
     updateSignInUI();
