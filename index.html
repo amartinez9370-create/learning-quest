@@ -611,7 +611,7 @@
   <!-- CHARACTER SELECT MODAL -->
   <div class="charselect-overlay" id="charSelectOverlay">
     <div class="charselect-card">
-      <h2 class="charselect-title">✨ Choose Your Healer ✨</h2>
+      <h2 class="charselect-title" id="charSelectTitle">✨ Choose Your Healer ✨</h2>
       <div class="charselect-signin-row" id="charSelectSignInRow">
         <button class="signin-google-btn" id="signInBtn" onclick="handleSignInClick()">
           <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.3 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.3 2.7l6-6C33.7 6.5 29.1 4.5 24 4.5 12.7 4.5 3.5 13.7 3.5 25S12.7 45.5 24 45.5 44.5 36.3 44.5 25c0-1.5-.2-3-.5-4.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 16 18.9 13 24 13c2.8 0 5.3 1 7.3 2.7l6-6C33.7 6.5 29.1 4.5 24 4.5c-7.7 0-14.3 4.4-17.7 10.2z"/><path fill="#4CAF50" d="M24 45.5c5 0 9.6-1.9 13-5.1l-6-4.9c-2 1.4-4.5 2.2-7 2.2-5.3 0-9.7-3.6-11.3-8.4l-6.6 5.1C9.6 41 16.3 45.5 24 45.5z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.6l6 4.9c-.4.4 6.5-4.8 6.5-14.5 0-1.5-.2-3-.5-4.5z"/></svg>
@@ -2158,6 +2158,7 @@ async function handleAuthStateChange(user){
         Object.keys(d.progress).forEach(subj=>{
           if(PROGRESS[subj]) PROGRESS[subj] = d.progress[subj];
         });
+        saveProgressLocal(); // keep local copy in sync so it's available if they later play signed-out
       }
     }
     updateSignInUI();
@@ -2211,7 +2212,7 @@ function updateSignInUI(){
         </button>
         <div class="signedin-popover" id="signedInPopover">
           <div class="sp-name" id="signedInPopoverName">${cloudUser.displayName || cloudUser.email || 'Google account'}</div>
-          <button class="sp-menu-btn" onclick="openCharacterSelect(); toggleSignedInPopover();">👤 New Game</button>
+          <button class="sp-menu-btn" onclick="openCharacterSelect(); toggleSignedInPopover();">✏️ Edit Profile</button>
           <div class="sp-divider"></div>
           <button class="sp-signout-btn" onclick="handleSignOutClick(); toggleSignedInPopover();">Sign out</button>
         </div>`;
@@ -2221,7 +2222,7 @@ function updateSignInUI(){
           <span>👤 Account</span>
         </button>
         <div class="signedin-popover" id="signedInPopover">
-          <button class="sp-menu-btn" onclick="openCharacterSelect(); toggleSignedInPopover();">👤 New Game</button>
+          <button class="sp-menu-btn" onclick="openCharacterSelect(); toggleSignedInPopover();">✏️ Edit Profile</button>
           <button class="sp-menu-btn" onclick="handleSignInClick(); toggleSignedInPopover();">🔑 Sign in with Google</button>
         </div>`;
     }
@@ -2300,6 +2301,25 @@ function savePlayerProfile(){
   } catch(e){ /* silent fail — session still works, just won't persist */ }
   cloudSyncProgress(); // no-op if not signed in
 }
+function loadProgressLocal(){
+  // Local-only star progress, used whenever the player isn't signed in (or hasn't
+  // signed in yet at boot time). Cloud data, once loaded, takes priority over this
+  // — see handleAuthStateChange — matching the existing "signed-in always wins" rule.
+  try{
+    const raw = localStorage.getItem('lqh_progress');
+    if(raw){
+      const data = JSON.parse(raw);
+      Object.keys(data).forEach(subj=>{
+        if(PROGRESS[subj]) PROGRESS[subj] = data[subj];
+      });
+    }
+  } catch(e){ /* localStorage unavailable or corrupt — fall through to fresh PROGRESS */ }
+}
+function saveProgressLocal(){
+  try{
+    localStorage.setItem('lqh_progress', JSON.stringify(PROGRESS));
+  } catch(e){ /* silent fail — session still works, just won't persist */ }
+}
 
 function openCharacterSelect(){
   charSelectPendingId = playerGender;
@@ -2308,7 +2328,10 @@ function openCharacterSelect(){
   updateSignInUI();
   document.getElementById('charSelectOverlay').dataset.userOpened = 'true';
   // Allow cancelling only if a profile already exists (i.e. not the forced first-launch flow)
-  document.getElementById('charSelectCancelBtn').style.display = playerName ? 'block' : 'none';
+  const isEditing = !!playerName;
+  document.getElementById('charSelectCancelBtn').style.display = isEditing ? 'block' : 'none';
+  document.getElementById('charSelectTitle').textContent = isEditing ? '✏️ Edit Your Profile' : '✨ Choose Your Healer ✨';
+  document.getElementById('charSelectConfirmBtn').textContent = isEditing ? 'SAVE CHANGES ✔' : 'BEGIN ADVENTURE ▶';
   document.getElementById('charSelectOverlay').classList.add('show');
 }
 function closeCharacterSelect(){
@@ -2518,7 +2541,7 @@ function endPokeBattle(won){
     else if(pokeState.wrongCount<=2) stars = 2;
     else stars = 1;
     const wasFirst = CP()[npc.topicIdx] === 0;
-    if(stars > CP()[npc.topicIdx]){ CP()[npc.topicIdx] = stars; cloudSyncProgress(); }
+    if(stars > CP()[npc.topicIdx]){ CP()[npc.topicIdx] = stars; saveProgressLocal(); cloudSyncProgress(); }
     sfxWin();
     if(currentLocationKey){ /* rendered local map: HUD/marker refresh happens when we return via closePokeBattle */ }
     else { owUpdateHud(); owRender(); }
@@ -2812,6 +2835,7 @@ function pickLocalMapNpc(topicIdx){
 
 /* init */
 const hadSavedProfile = loadPlayerProfile();
+loadProgressLocal();
 goToRegionMap();
 updateSignInUI();
 if(!hadSavedProfile){ openCharacterSelect(); }
