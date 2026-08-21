@@ -128,10 +128,18 @@
   }
   .signedin-popover.show{ display:block; }
   .signedin-popover .sp-name{ font-size:12px; color:var(--text-dim); margin-bottom:10px; word-break:break-word; line-height:1.4; }
+  .signedin-popover .sp-menu-btn{
+    width:100%; font-family:'Baloo 2',cursive; font-weight:700; font-size:13px; color:var(--text);
+    background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:8px;
+    padding:9px 10px; cursor:pointer; text-align:left; display:block;
+  }
+  .signedin-popover .sp-menu-btn:hover{ background:rgba(255,255,255,0.09); }
+  .signedin-popover .sp-menu-btn + .sp-menu-btn{ margin-top:6px; }
+  .signedin-popover .sp-divider{ height:1px; background:var(--border); margin:10px 0; }
   .signedin-popover .sp-signout-btn{
     width:100%; font-family:'Nunito',sans-serif; font-weight:700; font-size:12px; color:var(--red);
     background:rgba(217,112,122,0.1); border:1px solid rgba(217,112,122,0.35); border-radius:8px;
-    padding:8px; cursor:pointer;
+    padding:8px; cursor:pointer; margin-top:6px;
   }
   .signedin-popover .sp-signout-btn:hover{ background:rgba(217,112,122,0.18); }
 
@@ -576,9 +584,8 @@
     <div class="region-title-banner">
       <span class="app-logo">⚔️ Learning Quest</span>
       <div class="newgame-row">
-        <div class="signedin-indicator-wrap" id="signedInIndicatorWrap"></div>
         <button class="newgame-btn" id="leaderboardBtn" onclick="openLeaderboard()" style="display:none;">🏆 Leaderboard</button>
-        <button class="newgame-btn" onclick="openCharacterSelect()">👤 New Game</button>
+        <div class="signedin-indicator-wrap" id="signedInIndicatorWrap"></div>
       </div>
     </div>
     <div class="term-tabs-row">
@@ -2203,13 +2210,19 @@ function updateSignInUI(){
         </button>
         <div class="signedin-popover" id="signedInPopover">
           <div class="sp-name" id="signedInPopoverName">${cloudUser.displayName || cloudUser.email || 'Google account'}</div>
+          <button class="sp-menu-btn" onclick="openCharacterSelect(); toggleSignedInPopover();">👤 New Game</button>
+          <div class="sp-divider"></div>
           <button class="sp-signout-btn" onclick="handleSignOutClick(); toggleSignedInPopover();">Sign out</button>
         </div>`;
     } else {
       indicatorWrap.innerHTML = `
-        <button class="signedin-indicator-btn signedout" id="signedInIndicatorBtn" onclick="handleSignInClick()">
-          <span>👤 Sign in</span>
-        </button>`;
+        <button class="signedin-indicator-btn signedout" id="signedInIndicatorBtn" onclick="toggleSignedInPopover()">
+          <span>👤 Account</span>
+        </button>
+        <div class="signedin-popover" id="signedInPopover">
+          <button class="sp-menu-btn" onclick="openCharacterSelect(); toggleSignedInPopover();">👤 New Game</button>
+          <button class="sp-menu-btn" onclick="handleSignInClick(); toggleSignedInPopover();">🔑 Sign in with Google</button>
+        </div>`;
     }
   }
 
