@@ -2211,7 +2211,15 @@ async function handleAuthStateChange(user){
         // Only worth asking about when BOTH sides actually have some progress and they
         // differ — a brand-new account (cloud empty) or a fresh device (local empty)
         // has an obvious right answer, so just proceed without interrupting anyone.
-        const progressDiffers = JSON.stringify(d.progress) !== JSON.stringify(PROGRESS);
+        // NOTE: compare star VALUES per topic, not JSON.stringify — key order between
+        // Firestore's returned object and our locally-built PROGRESS isn't guaranteed
+        // to match, so a naive stringify comparison gives false positives.
+        const progressDiffers = Object.keys(PROGRESS).some(subj=>{
+          const localArr = PROGRESS[subj] || [];
+          const cloudArr = d.progress[subj] || [];
+          if(localArr.length !== cloudArr.length) return true;
+          return localArr.some((v,i)=> v !== cloudArr[i]);
+        });
         if(localStars > 0 && cloudStars > 0 && progressDiffers){
           promptProgressConflict(d.progress, localStars, cloudStars);
         } else {
