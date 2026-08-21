@@ -94,6 +94,7 @@
     display:flex; flex-direction:column; align-items:center; gap:2px;
   }
   .region-zone-stars{ font-size:clamp(9px,1.6vw,12px); color:var(--yellow); text-shadow:1px 1px 0 rgba(0,0,0,0.6); pointer-events:none; }
+  .region-zone-subject{ opacity:0.75; font-weight:600; }
   .region-title-banner{ text-align:left; margin-bottom:10px; position:relative; }
   .region-title-banner .app-logo{
     font-family:'Baloo 2',cursive; font-weight:700; font-size:clamp(18px,4.4vw,26px); color:var(--yellow);
@@ -253,9 +254,9 @@
     position:absolute; left:50%; bottom:0; height:100%; width:auto; max-width:none; max-height:100%; object-fit:contain;
     z-index:2;
     filter:
-      drop-shadow(0 0 3px rgba(255,255,255,0.95))
-      drop-shadow(0 0 3px rgba(255,255,255,0.95))
-      drop-shadow(0 0 7px rgba(255,255,255,0.55))
+      drop-shadow(0 0 1.2px rgba(255,255,255,0.95))
+      drop-shadow(0 0 1.2px rgba(255,255,255,0.95))
+      drop-shadow(0 0 2.5px rgba(255,255,255,0.5))
       drop-shadow(2px 4px 2px rgba(0,0,0,0.35));
   }
   .npc-zone:hover .npc-marker, .npc-zone:active .npc-marker{ transform:scale(1.1); }
@@ -301,6 +302,10 @@
     padding:10px 14px; font-size:14px; color:var(--text-dim); margin-bottom:10px;
   }
   .hud b{ color:var(--yellow); }
+  .hud-location-title{
+    font-family:'Baloo 2',cursive; font-weight:700; color:var(--text); text-align:center;
+    flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 10px;
+  }
 
   /* ---------- KINGDOM MAP MODE ---------- */
   .k-map-wrap{ position:relative; }
@@ -620,9 +625,10 @@
 
   <!-- RENDERED LOCAL MAP -->
   <div class="screen" id="screen-localmap">
-    <div class="topbar"><span class="crumb" onclick="goToRegionMap()">← REGION MAP</span><span id="localMapSubjectLabel"></span></div>
+    <div class="topbar"><span class="crumb" onclick="goToRegionMap()">← REGION MAP</span></div>
     <div class="hud">
       <span>QUESTS: <b id="localHudQuests">0</b>/<span id="localHudTotal">0</span></span>
+      <span class="hud-location-title" id="localHudLocationTitle"></span>
       <span>⭐ STARS: <b id="localHudStars">0</b>/<span id="localHudMaxStars">0</span></span>
     </div>
     <div class="localmap-wrap">
@@ -2590,6 +2596,13 @@ function regionLocationMastered(subjectKey){
   // "3 stars per topic will tag the location as mastered"
   return PROGRESS[subjectKey].every(s=>s>=3);
 }
+function subjectShortLabel(subjectKey){
+  // Short/abbreviated form for compact UI (region map pins, local map info bar).
+  // Only Araling Panlipunan's full label ("ARALING PANLIPUNAN") is too long to use as-is;
+  // every other subject's existing label is already short enough to reuse directly.
+  const overrides = { ap: "AP" };
+  return overrides[subjectKey] || SUBJECTS[subjectKey].label;
+}
 function totalStarsForRegion(regionKey){
   const region = REGIONS[regionKey];
   if(!region) return 0;
@@ -2704,7 +2717,7 @@ function renderRegionMap(){
     return `
       <div class="region-zone" style="left:${loc.cx}%; top:${loc.cy}%; width:${size}%; height:${heightPct}%;" onclick="pickRegionLocation('${loc.key}')">
         <div class="region-zone-inner"></div>
-        <div class="region-zone-label">${loc.name}${starDisplay?`<div class="region-zone-stars">${starDisplay}</div>`:''}</div>
+        <div class="region-zone-label">${loc.name} <span class="region-zone-subject">- ${subjectShortLabel(loc.subject)}</span>${starDisplay?`<div class="region-zone-stars">${starDisplay}</div>`:''}</div>
       </div>`;
   }).join('');
   // The image lives in its own clipped (rounded-corner) frame; zone markers/labels sit in an
@@ -2733,13 +2746,13 @@ function pickRegionLocation(locKey){
 
 function renderLocalMap(loc){
   const subj = SUBJECTS[loc.subject];
-  document.getElementById('localMapSubjectLabel').textContent = subj.label;
   const topics = subj.topics;
   const prog = PROGRESS[loc.subject];
   const doneCount = prog.filter(s=>s>0).length;
   const totalStars = prog.reduce((a,b)=>a+b,0);
   document.getElementById('localHudQuests').textContent = doneCount;
   document.getElementById('localHudTotal').textContent = topics.length;
+  document.getElementById('localHudLocationTitle').textContent = `${loc.name} - ${subjectShortLabel(loc.subject)}`;
   document.getElementById('localHudStars').textContent = totalStars;
   document.getElementById('localHudMaxStars').textContent = topics.length * 3;
 
