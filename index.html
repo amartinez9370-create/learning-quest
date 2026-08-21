@@ -94,6 +94,7 @@
     display:flex; flex-direction:column; align-items:center; gap:2px;
   }
   .region-zone-stars{ font-size:clamp(9px,1.6vw,12px); color:var(--yellow); text-shadow:1px 1px 0 rgba(0,0,0,0.6); pointer-events:none; }
+  .region-zone-name-line{ white-space:nowrap; }
   .region-zone-subject{ opacity:0.75; font-weight:600; }
   .region-title-banner{ text-align:left; margin-bottom:10px; position:relative; }
   .region-title-banner .app-logo{
@@ -2717,7 +2718,7 @@ function renderRegionMap(){
     return `
       <div class="region-zone" style="left:${loc.cx}%; top:${loc.cy}%; width:${size}%; height:${heightPct}%;" onclick="pickRegionLocation('${loc.key}')">
         <div class="region-zone-inner"></div>
-        <div class="region-zone-label">${loc.name} <span class="region-zone-subject">- ${subjectShortLabel(loc.subject)}</span>${starDisplay?`<div class="region-zone-stars">${starDisplay}</div>`:''}</div>
+        <div class="region-zone-label"><span class="region-zone-name-line">${loc.name} <span class="region-zone-subject">- ${subjectShortLabel(loc.subject)}</span></span>${starDisplay?`<div class="region-zone-stars">${starDisplay}</div>`:''}</div>
       </div>`;
   }).join('');
   // The image lives in its own clipped (rounded-corner) frame; zone markers/labels sit in an
