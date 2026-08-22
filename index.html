@@ -513,13 +513,7 @@
     box-shadow: 0 8px 20px rgba(0,0,0,0.3); padding:clamp(10px,2.8vw,12px) 8px; cursor:pointer; line-height:1.4;
   }
   .poke-leave-btn:hover{ background:#77778a; }
-  .poke-battle-leave-btn{
-    position:absolute; right:clamp(8px,2vw,14px); bottom:clamp(8px,2vw,14px); z-index:10;
-    font-family:'Nunito', sans-serif; font-weight:800; font-size:clamp(10px,2.4vw,12px); text-align:center;
-    background:rgba(60,56,80,0.75); color:white; border:1px solid rgba(255,255,255,0.2); border-radius:8px;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.3); padding:6px 12px; cursor:pointer; line-height:1.4;
-  }
-  .poke-battle-leave-btn:hover{ background:rgba(70,66,92,0.9); }
+
 
   /* ---------- OVERWORLD MODE ---------- */
   #gameCanvas{
@@ -2509,7 +2503,6 @@ function renderPokeBattle(message, showLesson){
 
   pokeArena.innerHTML = `
     <div class="poke-field">
-      <button class="poke-battle-leave-btn" onclick="closePokeBattle()">LEAVE</button>
       <div class="poke-enemy-row">
         <div class="poke-hud enemy">
           <div class="pname">${npc.name}</div>
