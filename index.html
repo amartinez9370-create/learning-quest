@@ -96,6 +96,14 @@
   .region-zone-stars{ font-size:clamp(9px,1.6vw,12px); color:var(--yellow); text-shadow:1px 1px 0 rgba(0,0,0,0.6); pointer-events:none; }
   .region-zone-name-line{ white-space:nowrap; }
   .region-zone-subject{ opacity:0.75; font-weight:600; }
+  .exam-review-badge{
+    position:absolute; top:-4px; right:-4px; z-index:3;
+    width:20px; height:20px; border-radius:50%;
+    background:var(--red); color:#fff; border:2px solid #fff2c9;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Baloo 2',cursive; font-weight:800; font-size:13px;
+    box-shadow:0 3px 8px rgba(0,0,0,0.4); pointer-events:none;
+  }
   .region-title-banner{ text-align:left; margin-bottom:10px; position:relative; }
   .region-title-banner .app-logo{
     font-family:'Baloo 2',cursive; font-weight:700; font-size:clamp(18px,4.4vw,26px); color:var(--yellow);
@@ -269,6 +277,7 @@
       drop-shadow(0 0 2.5px rgba(255,255,255,0.5))
       drop-shadow(2px 4px 2px rgba(0,0,0,0.35));
   }
+  .npc-exam-badge{ top:2%; right:-6px; width:16px; height:16px; font-size:11px; }
   .npc-zone:hover .npc-marker, .npc-zone:active .npc-marker{ transform:scale(1.1); }
   .npc-marker{ transition:transform .12s; }
   .npc-zone-stars{
@@ -712,6 +721,16 @@ const VICTORY_LINES = [
 ];
 function randomVictoryLine(){ return VICTORY_LINES[Math.floor(Math.random()*VICTORY_LINES.length)]; }
 function shuffleArr(arr){ return arr.map(a=>[Math.random(),a]).sort((a,b)=>a[0]-b[0]).map(a=>a[1]); }
+function buildQuizOrder(npc){
+  // Regular topics: shuffle every question, use them all.
+  // Pool topics (npc.pool set to a draw count, e.g. 10): sample that many random indices
+  // out of the full quiz array. Called at battle start AND on mid-battle wraparound
+  // (see endPokeBattle's reshuffle), so a long battle or a replay draws a fresh subset.
+  if(npc.pool && npc.quiz.length > npc.pool){
+    return shuffleArr([...Array(npc.quiz.length).keys()]).slice(0, npc.pool);
+  }
+  return shuffleArr([...Array(npc.quiz.length).keys()]);
+}
 function pickQuizOrder(quizLength){
   const size = Math.min(QUIZ_ROUND_SIZE, quizLength);
   return shuffleArr([...Array(quizLength).keys()]).slice(0, size);
@@ -1933,7 +1952,7 @@ function initOverworld(){
   const topics = CT();
   owNpcList = topics.map((t,i)=>{
     const pos = NPC_POOL[i % NPC_POOL.length];
-    return { topicIdx:i, col:pos[0], row:pos[1], title:t.title, icon:t.icon, color:t.color, name:t.name, greet:t.greet, lesson:t.lesson, thanks:t.thanks, quiz:t.quiz };
+    return { topicIdx:i, col:pos[0], row:pos[1], title:t.title, icon:t.icon, color:t.color, name:t.name, greet:t.greet, lesson:t.lesson, thanks:t.thanks, quiz:t.quiz, pool:t.pool };
   });
   owPlayer = { col:8, row:9, px:0, py:0, facing:'up', moving:false };
   owPlayer.px = owPlayer.col*TILE; owPlayer.py = owPlayer.row*TILE;
@@ -2430,7 +2449,7 @@ function startPokeBattle(npc){
   owBattleActive = true;
   pokeState = {
     heroMP:100, heroMax:100, villagerHP:0, villagerMax:100,
-    quizOrder: shuffleArr([...Array(npc.quiz.length).keys()]), qIdx:0, correct:0, wrongCount:0
+    quizOrder: buildQuizOrder(npc), qIdx:0, correct:0, wrongCount:0
   };
   showScreen('screen-pokebattle');
   renderPokeIntro(`<b>${npc.name}</b><br>${npc.greet}`);
@@ -2574,7 +2593,7 @@ function pokeAnswer(displayIdx){
     if(pokeState.heroMP<=0){ endPokeBattle(false); return; }
     pokeState.qIdx++;
     if(pokeState.qIdx >= pokeState.quizOrder.length){
-      pokeState.quizOrder = shuffleArr([...Array(npc.quiz.length).keys()]);
+      pokeState.quizOrder = buildQuizOrder(npc);
       pokeState.qIdx = 0;
     }
     renderPokeBattle("", false);
@@ -2803,6 +2822,7 @@ function renderRegionMap(){
     const maxStars = regionMaxStarsForSubject(loc.subject);
     const mastered = regionLocationMastered(loc.subject);
     const starDisplay = mastered ? '⭐⭐⭐' : (stars>0 ? `⭐ ${stars}/${maxStars}` : '');
+    const hasExamReview = subj.topics.some(t=>t.pool);
     const size = loc.size !== undefined ? loc.size : 15;
     // sizeY lets the tap zone be an ellipse (independent height-to-width ratio) rather than a
     // fixed circle. Defaults to matching size, so any location without sizeY set behaves exactly
@@ -2817,6 +2837,7 @@ function renderRegionMap(){
     return `
       <div class="region-zone" style="left:${loc.cx}%; top:${loc.cy}%; width:${size}%; height:${heightPct}%;" onclick="pickRegionLocation('${loc.key}')">
         <div class="region-zone-inner"></div>
+        ${hasExamReview ? '<div class="exam-review-badge" title="Exam review topics available">!</div>' : ''}
         <div class="region-zone-label"><span class="region-zone-name-line">${loc.name} <span class="region-zone-subject">- ${subjectShortLabel(loc.subject)}</span></span>${starDisplay?`<div class="region-zone-stars">${starDisplay}</div>`:''}</div>
       </div>`;
   }).join('');
@@ -2873,6 +2894,7 @@ function renderLocalMap(loc){
     return `
       <div class="npc-zone" style="left:${spot.x}%; top:${spot.y}%; width:${size}%;" onclick="pickLocalMapNpc(${i})">
         ${starDisplay?`<div class="npc-zone-stars">${starDisplay}</div>`:''}
+        ${t.pool ? '<div class="exam-review-badge npc-exam-badge" title="Exam review topic">!</div>' : ''}
         <div class="npc-marker ${spriteSrc?'has-sprite':''}">${spriteInner}</div>
       </div>`;
   }).join('');
@@ -2889,7 +2911,7 @@ function pickLocalMapNpc(topicIdx){
     topicIdx, col:0, row:0,
     title: topic.title, icon: topic.icon, color: topic.color,
     name: topic.name, greet: topic.greet, lesson: topic.lesson, thanks: topic.thanks, quiz: topic.quiz,
-    sprite: spot ? spot.sprite : null
+    sprite: spot ? spot.sprite : null, pool: topic.pool
   };
   startPokeBattle(npc);
 }
