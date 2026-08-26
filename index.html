@@ -738,13 +738,12 @@ const VICTORY_LINES = [
 function randomVictoryLine(){ return VICTORY_LINES[Math.floor(Math.random()*VICTORY_LINES.length)]; }
 function shuffleArr(arr){ return arr.map(a=>[Math.random(),a]).sort((a,b)=>a[0]-b[0]).map(a=>a[1]); }
 function buildQuizOrder(npc){
-  // Regular topics: shuffle every question, use them all.
-  // Pool topics (npc.pool set to a draw count, e.g. 10): sample that many random indices
-  // out of the full quiz array. Called at battle start AND on mid-battle wraparound
-  // (see endPokeBattle's reshuffle), so a long battle or a replay draws a fresh subset.
-  if(npc.pool && npc.quiz.length > npc.pool){
-    return shuffleArr([...Array(npc.quiz.length).keys()]).slice(0, npc.pool);
-  }
+  // Shuffle every question in the bank and use them all — for both regular topics
+  // (10-question bank) and pool/exam-review topics (20-question bank). Called at
+  // battle start AND on mid-battle wraparound (see endPokeBattle's reshuffle), so a
+  // long battle or a replay draws a fresh full-bank shuffle rather than repeating
+  // the same order. npc.pool no longer affects sampling here — it's still used
+  // elsewhere (badges, EXAM_PROGRESS) purely as an "is this exam-review" flag.
   return shuffleArr([...Array(npc.quiz.length).keys()]);
 }
 function pickQuizOrder(quizLength){
@@ -2951,7 +2950,7 @@ function pokeAnswer(displayIdx){
   if(origAnsweredIdx===qItem.correct){
     btns[displayIdx].classList.add('correct');
     sfxCorrect();
-    const heal = 22;
+    const heal = npc.pool ? 10 : 22;
     pokeState.villagerHP = Math.min(pokeState.villagerMax, pokeState.villagerHP+heal);
     villagerSprite.classList.add('heal-pulse');
     setTimeout(()=>{ villagerSprite.classList.remove('heal-pulse'); }, 1100);
@@ -2960,7 +2959,7 @@ function pokeAnswer(displayIdx){
   } else {
     btns[displayIdx].classList.add('wrong'); btns[correctDisplayIdx].classList.add('correct');
     sfxWrong();
-    const drain = 22;
+    const drain = npc.pool ? 10 : 22;
     pokeState.heroMP = Math.max(0, pokeState.heroMP-drain);
     pokeState.wrongCount++;
     heroSprite.classList.add('misfire');
