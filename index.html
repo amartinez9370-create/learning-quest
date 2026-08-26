@@ -2049,6 +2049,15 @@ gmrc: { label:"GMRC", sub:"Good Manners & Right Conduct", icon:"💝", color:"#f
 let PROGRESS = {};
 Object.keys(SUBJECTS).forEach(k=>{ PROGRESS[k] = Array(SUBJECTS[k].topics.length).fill(0); });
 
+// Best star count (0-3) earned specifically on a topic's exam-review pool (the expanded
+// 20-question set), keyed by topic key — sparse, only exam-review (pool) topics get an entry.
+// Deliberately separate from PROGRESS: PROGRESS may already be 3 from a topic's ORIGINAL
+// 10-question set, from before it became an exam-review topic — that old mastery shouldn't
+// count as having cleared the new, larger pool. EXAM_PROGRESS starts everyone at 0 for every
+// exam-review topic, regardless of prior PROGRESS, so the green-check badge only appears
+// after a real attempt against the current pool.
+let EXAM_PROGRESS = {};
+
 let currentSubjectKey = null;
 
 function CT(){ return SUBJECTS[currentSubjectKey].topics; } // current topics
@@ -2294,7 +2303,7 @@ function initOverworld(){
   const topics = CT();
   owNpcList = topics.map((t,i)=>{
     const pos = NPC_POOL[i % NPC_POOL.length];
-    return { topicIdx:i, col:pos[0], row:pos[1], title:t.title, icon:t.icon, color:t.color, name:t.name, greet:t.greet, lesson:t.lesson, thanks:t.thanks, quiz:t.quiz, pool:t.pool };
+    return { topicIdx:i, col:pos[0], row:pos[1], title:t.title, icon:t.icon, color:t.color, name:t.name, greet:t.greet, lesson:t.lesson, thanks:t.thanks, quiz:t.quiz, pool:t.pool, topicKey:t.key };
   });
   owPlayer = { col:8, row:9, px:0, py:0, facing:'up', moving:false };
   owPlayer.px = owPlayer.col*TILE; owPlayer.py = owPlayer.row*TILE;
@@ -2584,6 +2593,17 @@ async function handleAuthStateChange(user){
           saveProgressLocal(); // keep local copy in sync so it's available if they later play signed-out
         }
       }
+      if(d.examProgress){
+        // Lower stakes than PROGRESS (no leaderboard tie, no visible star count) — auto-merge
+        // by taking the higher value per topic rather than prompting, so signing in never
+        // regresses a real completed review even if the two sides disagree.
+        Object.keys(d.examProgress).forEach(topicKey=>{
+          const cloudVal = d.examProgress[topicKey] || 0;
+          const localVal = EXAM_PROGRESS[topicKey] || 0;
+          EXAM_PROGRESS[topicKey] = Math.max(cloudVal, localVal);
+        });
+        saveExamProgressLocal();
+      }
     }
     updateSignInUI();
     // If the char-select modal happens to be open when sign-in completes, refresh it
@@ -2698,9 +2718,15 @@ async function cloudSyncProgress(){
     displayName: cloudUser.displayName,
     photoURL: cloudUser.photoURL,
     progress: PROGRESS,
+    examProgress: EXAM_PROGRESS,
     gender: playerGender,
     playerName: playerName
   });
+}
+function cloudSyncExamProgress(){
+  // EXAM_PROGRESS rides along in the same document as PROGRESS (see cloudSyncProgress) —
+  // this alias just keeps the call site at the star-award moment readable/explicit.
+  return cloudSyncProgress();
 }
 
 function pokePlayerSprite(view){
@@ -2742,6 +2768,23 @@ function loadProgressLocal(){
 function saveProgressLocal(){
   try{
     localStorage.setItem('lqh_progress', JSON.stringify(PROGRESS));
+  } catch(e){ /* silent fail — session still works, just won't persist */ }
+}
+function loadExamProgressLocal(){
+  // Mirrors loadProgressLocal, but for EXAM_PROGRESS (see its declaration for why this is
+  // tracked separately from PROGRESS). Sparse object keyed by topic key — merge onto
+  // EXAM_PROGRESS rather than replace, though at boot EXAM_PROGRESS starts empty anyway.
+  try{
+    const raw = localStorage.getItem('lqh_exam_progress');
+    if(raw){
+      const data = JSON.parse(raw);
+      Object.keys(data).forEach(topicKey=>{ EXAM_PROGRESS[topicKey] = data[topicKey]; });
+    }
+  } catch(e){ /* localStorage unavailable or corrupt — fall through to fresh EXAM_PROGRESS */ }
+}
+function saveExamProgressLocal(){
+  try{
+    localStorage.setItem('lqh_exam_progress', JSON.stringify(EXAM_PROGRESS));
   } catch(e){ /* silent fail — session still works, just won't persist */ }
 }
 
@@ -2965,6 +3008,10 @@ function endPokeBattle(won){
     else stars = 1;
     const wasFirst = CP()[npc.topicIdx] === 0;
     if(stars > CP()[npc.topicIdx]){ CP()[npc.topicIdx] = stars; saveProgressLocal(); cloudSyncProgress(); }
+    if(npc.pool && npc.topicKey){
+      const prevExamStars = EXAM_PROGRESS[npc.topicKey] || 0;
+      if(stars > prevExamStars){ EXAM_PROGRESS[npc.topicKey] = stars; saveExamProgressLocal(); cloudSyncExamProgress(); }
+    }
     sfxWin();
     if(currentLocationKey){ /* rendered local map: HUD/marker refresh happens when we return via closePokeBattle */ }
     else { owUpdateHud(); owRender(); }
@@ -3057,19 +3104,15 @@ function regionLocationMastered(subjectKey){
   // "3 stars per topic will tag the location as mastered"
   return PROGRESS[subjectKey].every(s=>s>=3);
 }
-function examReviewTopicIndices(subjectKey){
-  const topics = SUBJECTS[subjectKey].topics;
-  const idxs = [];
-  topics.forEach((t,i)=>{ if(t.pool) idxs.push(i); });
-  return idxs;
-}
 function examReviewMastered(subjectKey){
-  // True only when EVERY exam-review (pool) topic at this location has all 3 stars.
+  // True only when EVERY exam-review (pool) topic at this location has 3 stars specifically
+  // earned against its exam-review pool (EXAM_PROGRESS) — NOT the topic's regular all-time
+  // best (PROGRESS), which may already be 3 from before the topic became exam-review content.
   // A location with no exam-review topics returns false (nothing to master).
-  const idxs = examReviewTopicIndices(subjectKey);
-  if(idxs.length === 0) return false;
-  const prog = PROGRESS[subjectKey];
-  return idxs.every(i => prog[i] >= 3);
+  const topics = SUBJECTS[subjectKey].topics;
+  const poolTopics = topics.filter(t=>t.pool);
+  if(poolTopics.length === 0) return false;
+  return poolTopics.every(t => (EXAM_PROGRESS[t.key]||0) >= 3);
 }
 function subjectShortLabel(subjectKey){
   // Short/abbreviated form for compact UI (region map pins, local map info bar).
@@ -3250,7 +3293,7 @@ function renderLocalMap(loc){
     return `
       <div class="npc-zone" style="left:${spot.x}%; top:${spot.y}%; width:${size}%;" onclick="pickLocalMapNpc(${i})">
         ${starDisplay?`<div class="npc-zone-stars">${starDisplay}</div>`:''}
-        ${t.pool ? (stars >= 3 ? '<div class="exam-review-badge npc-exam-badge exam-review-badge-done" title="Exam review topic mastered">✓</div>' : '<div class="exam-review-badge npc-exam-badge" title="Exam review topic">!</div>') : ''}
+        ${t.pool ? ((EXAM_PROGRESS[t.key]||0) >= 3 ? '<div class="exam-review-badge npc-exam-badge exam-review-badge-done" title="Exam review topic mastered">✓</div>' : '<div class="exam-review-badge npc-exam-badge" title="Exam review topic">!</div>') : ''}
         <div class="npc-marker ${spriteSrc?'has-sprite':''}">${spriteInner}</div>
       </div>`;
   }).join('');
@@ -3267,7 +3310,7 @@ function pickLocalMapNpc(topicIdx){
     topicIdx, col:0, row:0,
     title: topic.title, icon: topic.icon, color: topic.color,
     name: topic.name, greet: topic.greet, lesson: topic.lesson, thanks: topic.thanks, quiz: topic.quiz,
-    sprite: spot ? spot.sprite : null, pool: topic.pool
+    sprite: spot ? spot.sprite : null, pool: topic.pool, topicKey: topic.key
   };
   startPokeBattle(npc);
 }
@@ -3276,6 +3319,7 @@ function pickLocalMapNpc(topicIdx){
 /* init */
 const hadSavedProfile = loadPlayerProfile();
 loadProgressLocal();
+loadExamProgressLocal();
 goToRegionMap();
 updateSignInUI();
 if(!hadSavedProfile){ openCharacterSelect(); }
