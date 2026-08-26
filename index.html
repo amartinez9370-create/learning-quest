@@ -104,6 +104,10 @@
     font-family:'Baloo 2',cursive; font-weight:800; font-size:13px;
     box-shadow:0 3px 8px rgba(0,0,0,0.4); pointer-events:none;
   }
+  .exam-review-badge-inline{
+    position:static; display:inline-flex; width:15px; height:15px; font-size:11px;
+    margin-left:4px; vertical-align:middle; flex-shrink:0;
+  }
   .region-title-banner{ text-align:left; margin-bottom:10px; position:relative; }
   .region-title-banner .app-logo{
     font-family:'Baloo 2',cursive; font-weight:700; font-size:clamp(18px,4.4vw,26px); color:var(--yellow);
@@ -3163,8 +3167,7 @@ function renderRegionMap(){
     return `
       <div class="region-zone" style="left:${loc.cx}%; top:${loc.cy}%; width:${size}%; height:${heightPct}%;" onclick="pickRegionLocation('${loc.key}')">
         <div class="region-zone-inner"></div>
-        ${hasExamReview ? '<div class="exam-review-badge" title="Exam review topics available">!</div>' : ''}
-        <div class="region-zone-label"><span class="region-zone-name-line">${loc.name} <span class="region-zone-subject">- ${subjectShortLabel(loc.subject)}</span></span>${starDisplay?`<div class="region-zone-stars">${starDisplay}</div>`:''}</div>
+        <div class="region-zone-label"><span class="region-zone-name-line">${loc.name} <span class="region-zone-subject">- ${subjectShortLabel(loc.subject)}</span>${hasExamReview ? '<span class="exam-review-badge exam-review-badge-inline" title="Exam review topics available">!</span>' : ''}</span>${starDisplay?`<div class="region-zone-stars">${starDisplay}</div>`:''}</div>
       </div>`;
   }).join('');
   // The image lives in its own clipped (rounded-corner) frame; zone markers/labels sit in an
