@@ -742,8 +742,8 @@ function buildQuizOrder(npc){
   // (10-question bank) and pool/exam-review topics (20-question bank). Called at
   // battle start AND on mid-battle wraparound (see endPokeBattle's reshuffle), so a
   // long battle or a replay draws a fresh full-bank shuffle rather than repeating
-  // the same order. npc.pool no longer affects sampling here — it's still used
-  // elsewhere (badges, EXAM_PROGRESS) purely as an "is this exam-review" flag.
+  // the same order. The topic's examReview flag doesn't affect sampling here —
+  // it's used elsewhere (badges, EXAM_PROGRESS) to identify exam-review topics.
   return shuffleArr([...Array(npc.quiz.length).keys()]);
 }
 function pickQuizOrder(quizLength){
@@ -1064,7 +1064,7 @@ science: { label:"SCIENCE", sub:"Matter & Good Habits", icon:"🔬", color:"#4dc
 ]},
 
 english: { label:"ENGLISH", sub:"Reading & Grammar", icon:"📖", color:"#ffd23f", topics:[
-  { key:"notingdetails", title:"Noting Details", icon:"🔍", color:"#ffd23f", name:"YOUNG ADVENTURER", pool:10,
+  { key:"notingdetails", title:"Noting Details", icon:"🔍", color:"#ffd23f", name:"YOUNG ADVENTURER", examReview:true,
     greet:"Still new to exploring, but I'm learning to notice everything — who, what, when, where, why. Can you spot the small details too?",
     lesson:"<b>Noting details</b> means paying close attention to specific information in a story or text, such as who, what, when, where, and why.",
     thanks:"Great detective work! You caught every clue!",
@@ -1106,7 +1106,7 @@ english: { label:"ENGLISH", sub:"Reading & Grammar", icon:"📖", color:"#ffd23f
       {q:"When writing, choosing words with the right connotation helps you:", opts:["Express the right feeling or tone","Make the writing longer","Avoid using any adjectives","Confuse the reader"], correct:0},
       {q:"The words 'house' and 'home' have similar denotations, but 'home' often carries a connotation of:", opts:["Warmth and comfort","Danger","Coldness","Nothing at all"], correct:0}
     ]},
-  { key:"realityfantasy", title:"Reality & Fantasy", icon:"🦄", color:"#ff8fab", name:"GROVEKEEPER", pool:10,
+  { key:"realityfantasy", title:"Reality & Fantasy", icon:"🦄", color:"#ff8fab", name:"GROVEKEEPER", examReview:true,
     greet:"I tend this grove where the stones glow with old magic — some say it's real, others say it's just legend. Can you tell reality from fantasy?",
     lesson:"<b>Reality</b> refers to things that can really happen or are true to life. <b>Fantasy</b> refers to things that are imaginary and cannot really happen, like talking animals or magic.",
     thanks:"You can tell truth from make-believe perfectly!",
@@ -1132,7 +1132,7 @@ english: { label:"ENGLISH", sub:"Reading & Grammar", icon:"📖", color:"#ffd23f
       {q:"A story about a family celebrating a birthday party with cake and games is an example of:", opts:["Fantasy","Reality","Magic","Make-believe"], correct:1},
       {q:"Which detail would you most likely find in a FANTASY story?", opts:["A student eating lunch in the cafeteria","A witch who can turn people into frogs","A bus arriving at school on time","A dog being walked around the block"], correct:1}
     ]},
-  { key:"masscount", title:"Mass & Count Nouns", icon:"🧮", color:"#3ddc84", name:"ELVEN TRADER", pool:10,
+  { key:"masscount", title:"Mass & Count Nouns", icon:"🧮", color:"#3ddc84", name:"ELVEN TRADER", examReview:true,
     greet:"In my trade, I weigh some goods and count others one by one. Do you know which nouns you can count, and which you can only measure?",
     lesson:"<b>Count nouns</b> can be counted and have singular and plural forms (one dog, two dogs). <b>Mass nouns</b> (uncountable nouns) cannot be counted individually and have no plural form (water, rice, sugar, air).",
     thanks:"You counted that perfectly — well, the countable ones anyway!",
@@ -1158,7 +1158,7 @@ english: { label:"ENGLISH", sub:"Reading & Grammar", icon:"📖", color:"#ffd23f
       {q:"Which of these is typically NOT counted individually?", opts:["Chair","Table","Butter","Pencil"], correct:2},
       {q:"Choose the mass noun in this list: bag, shoe, oil, cup.", opts:["Bag","Shoe","Oil","Cup"], correct:2}
     ]},
-  { key:"singularplural", title:"Singular & Plural Nouns", icon:"🔢", color:"#4dc9ff", name:"FOREST HERBALIST", pool:10,
+  { key:"singularplural", title:"Singular & Plural Nouns", icon:"🔢", color:"#4dc9ff", name:"FOREST HERBALIST", examReview:true,
     greet:"I gather a single rare bloom sometimes, and whole bundles of herbs other times. Do you know how nouns change from one to many?",
     lesson:"A <b>singular noun</b> names one person, place, or thing. A <b>plural noun</b> names more than one. Most nouns add -s or -es to become plural, but some are irregular (child → children, mouse → mice, foot → feet).",
     thanks:"You've mastered singular and plural — both of you deserve a star!",
@@ -1280,7 +1280,7 @@ english: { label:"ENGLISH", sub:"Reading & Grammar", icon:"📖", color:"#ffd23f
       {q:"Summarizing helps a reader to:", opts:["Check their understanding of a text","Avoid understanding the text","Make the text longer","Confuse other readers"], correct:0},
       {q:"The first step in summarizing a story is to:", opts:["Identify the most important events and ideas","Memorize every word","Ignore the plot","Change the story completely"], correct:0}
     ]},
-  { key:"verbtenses", title:"Simple Tenses of Verbs", icon:"⏳", color:"#4dc9ff", name:"STABLEHAND", pool:10,
+  { key:"verbtenses", title:"Simple Tenses of Verbs", icon:"⏳", color:"#4dc9ff", name:"STABLEHAND", examReview:true,
     greet:"I care for the horses here — feeding them now, brushing them yesterday, and riding them again tomorrow! Can you tell when a verb is happening?",
     lesson:"A verb's <b>simple tense</b> tells you WHEN an action happens. <b>Simple Present</b>: happens regularly or now (walk, plays). <b>Simple Past</b>: already happened (walked, played). <b>Simple Future</b>: will happen later (will walk, will play).",
     thanks:"Great work! You know exactly when every action happens!",
@@ -1306,7 +1306,7 @@ english: { label:"ENGLISH", sub:"Reading & Grammar", icon:"📖", color:"#ffd23f
       {q:"Which sentence correctly uses simple past tense?", opts:["We watch a movie last Saturday.","We watched a movie last Saturday.","We will watch a movie last Saturday.","We watching a movie last Saturday."], correct:1},
       {q:"Which sentence correctly uses simple future tense?", opts:["She will bake cookies for the party.","She bakes cookies for the party.","She baked cookies for the party.","She baking cookies for the party."], correct:0}
     ]},
-  { key:"outline", title:"Outline", icon:"🗺️", color:"#3ddc84", name:"WOODLAND RANGER", pool:10,
+  { key:"outline", title:"Outline", icon:"🗺️", color:"#3ddc84", name:"WOODLAND RANGER", examReview:true,
     greet:"I track every trail through this forest, marking the main paths and the smaller ones that branch off. Can you organize ideas the same way?",
     lesson:"An <b>outline</b> organizes information by topic, main idea, and supporting details. The <b>topic</b> is what it's about, the <b>main idea</b> is the biggest point, and <b>supporting details</b> are the smaller facts that explain it.",
     thanks:"Excellent! You've mapped out the ideas perfectly, just like a true trailblazer!",
@@ -1332,7 +1332,7 @@ english: { label:"ENGLISH", sub:"Reading & Grammar", icon:"📖", color:"#ffd23f
       {q:"Which detail supports the main idea 'Exercise keeps you healthy'?", opts:["Exercise strengthens your heart and muscles","Exercise is boring","Exercise has no benefits","Exercise is only for athletes"], correct:0},
       {q:"A good outline should be organized so that:", opts:["Details make sense under their main idea","Details are placed randomly","Only the title is shown","Everything is one long sentence"], correct:0}
     ]},
-  { key:"friendlyletter", title:"Friendly Letter", icon:"✉️", color:"#ffb703", name:"FISHERMAN", pool:10,
+  { key:"friendlyletter", title:"Friendly Letter", icon:"✉️", color:"#ffb703", name:"FISHERMAN", examReview:true,
     greet:"I write letters to my family every time I sail out to sea. Do you know the parts that make up a proper friendly letter?",
     lesson:"A <b>friendly letter</b> has five parts: the <b>heading</b> (date), <b>salutation</b> (greeting, like 'Dear Ana,'), <b>body</b> (the message), <b>closing</b> (like 'Your friend,'), and <b>signature</b> (your name). Friendly letters are often used to invite, thank, or share news with someone.",
     thanks:"Wonderful! Your letter has everything it needs — I'm sure it will make someone smile!",
@@ -1358,7 +1358,7 @@ english: { label:"ENGLISH", sub:"Reading & Grammar", icon:"📖", color:"#ffd23f
       {q:"What should come right after the salutation in a friendly letter?", opts:["The signature","The heading","The body of the message","Nothing else is needed"], correct:2},
       {q:"Which is the correct format for a heading in a Philippine friendly letter?", opts:["Just a signature","The date, such as 'August 26, 2026'","A random drawing","A list of ingredients"], correct:1}
     ]},
-  { key:"visualelements", title:"Visual Elements: Lines, Colors, Shapes", icon:"🎨", color:"#ff6f59", name:"TAVERN KEEPER", pool:10,
+  { key:"visualelements", title:"Visual Elements: Lines, Colors, Shapes", icon:"🎨", color:"#ff6f59", name:"TAVERN KEEPER", examReview:true,
     greet:"My tavern walls are covered in old paintings and carved signs — every line, color, and shape here tells a story. Can you read what pictures are trying to say?",
     lesson:"<b>Visual elements</b> are the lines, shapes, and colors used in a picture. A <b>line</b> connects points and can be straight, curved, or zigzag. A <b>shape</b> is an enclosed area, like a circle or triangle. To understand a picture, we <b>identify</b> these elements and <b>derive meaning</b> from them — figuring out what the artist is trying to show or communicate.",
     thanks:"You really know how to read a picture now — you can tell what it's trying to say!",
@@ -1386,7 +1386,7 @@ english: { label:"ENGLISH", sub:"Reading & Grammar", icon:"📖", color:"#ffd23f
     ]}
 ]},
 mapeh: { label:"MAPEH", sub:"Music, Arts, PE & Health", icon:"🎨", color:"#b06bff", topics:[
-  { key:"culture", title:"Culture & Cultural Identity", icon:"🎭", color:"#ff6f59", name:"ELVEN TRADER", pool:10,
+  { key:"culture", title:"Culture & Cultural Identity", icon:"🎭", color:"#ff6f59", name:"ELVEN TRADER", examReview:true,
     greet:"My trade takes me among many peoples, each with their own traditions, food, and language. Know your culture?",
     lesson:"<b>Culture</b> includes the traditions, beliefs, food, language, and practices of a group of people. <b>Cultural identity</b> is how a person identifies with and feels connected to their culture.",
     thanks:"You truly celebrate where you come from! Well done!",
@@ -1428,7 +1428,7 @@ mapeh: { label:"MAPEH", sub:"Music, Arts, PE & Health", icon:"🎨", color:"#b06
       {q:"An artist uses different colors, shapes, and textures to create a work of:", opts:["Visual art","Mathematics","Chemistry","Grammar"], correct:0},
       {q:"Which combination correctly pairs an element of visual art with its description?", opts:["Texture - how something feels or appears to feel","Value - the shape of an object","Space - the color of an object","Line - the smell of a painting"], correct:0}
     ]},
-  { key:"personalhealth", title:"Personal Health Care", icon:"🧼", color:"#3ddc84", name:"HUNTER TRAPPER", pool:10,
+  { key:"personalhealth", title:"Personal Health Care", icon:"🧼", color:"#3ddc84", name:"HUNTER TRAPPER", examReview:true,
     greet:"Days on the trail mean I have to take extra care of myself — clean hands, clean body, healthy me. Do you know your proper hygiene practices?",
     lesson:"<b>Personal health care</b> means practicing good hygiene to keep your body clean, healthy, and free from germs. This includes proper <b>handwashing</b>, <b>oral care</b> (caring for your teeth and mouth), <b>body care</b> (bathing and keeping your skin clean), and <b>genital care</b> (keeping your private body parts clean and healthy).",
     thanks:"You really know your hygiene practices!",
@@ -1502,7 +1502,7 @@ mapeh: { label:"MAPEH", sub:"Music, Arts, PE & Health", icon:"🎨", color:"#b06
       {q:"Which of these combines movement with music and culture?", opts:["Dance","Silent reading","Solving math problems","Drawing a picture"], correct:0},
       {q:"A balanced routine of exercise and rest helps the body to:", opts:["Stay strong and recover properly","Become weaker","Get sick more often","Have less energy"], correct:0}
     ]},
-  { key:"sinukwanfestival", title:"Creative Works in the Sinukwan Festival", icon:"🎭", color:"#e07a3e", name:"MOUNTAIN GUARD", pool:10,
+  { key:"sinukwanfestival", title:"Creative Works in the Sinukwan Festival", icon:"🎭", color:"#e07a3e", name:"MOUNTAIN GUARD", examReview:true,
     greet:"I've stood watch on many mountains, but none as storied as Mt. Arayat, home of Aring Sinukwan. Do you know the festival that honors this old legend?",
     lesson:"The <b>Sinukwan Festival</b> is a Kapampangan festival from Pampanga that honors Aring Sinukwan, a legendary figure linked to Mount Arayat. It celebrates local culture through <b>sound</b> (music), <b>theater</b> (drama and acting), <b>dance</b> (street dancing), and <b>visual arts</b> (costumes and props) — showing how a community can bring its identity and traditions to life through creative works.",
     thanks:"You now understand how music, theater, dance, and visual arts come together to celebrate culture!",
@@ -1528,7 +1528,7 @@ mapeh: { label:"MAPEH", sub:"Music, Arts, PE & Health", icon:"🎨", color:"#b06
       {q:"Learning about festivals from other provinces, like the Sinukwan Festival, helps students understand:", opts:["The diversity and richness of Philippine cultural identity","That all provinces have identical traditions","That festivals are unimportant","That only their own province has culture"], correct:0},
       {q:"A festival that includes music, dance, theater, and visual arts together is a creative way to:", opts:["Bring a community's culture and identity to life","Avoid learning about tradition","Replace formal education","Ignore local history"], correct:0}
     ]},
-  { key:"targetgames", title:"Move, Aim, and Score: Target Game Skills", icon:"🎯", color:"#4dc9ff", name:"WOODLAND RANGER", pool:10,
+  { key:"targetgames", title:"Move, Aim, and Score: Target Game Skills", icon:"🎯", color:"#4dc9ff", name:"WOODLAND RANGER", examReview:true,
     greet:"A steady hand and a sharp eye — that's what it takes to hit your mark, whether hunting or playing a target game. Ready to test your aim?",
     lesson:"<b>Target games</b> are physical activities where players try to send or land an object at a specific target, like Tumbang Preso, Tatsing, or Batuhang Bola. These games build <b>agility</b> (quick movement), <b>balance</b>, <b>coordination</b>, and <b>speed</b> through <b>locomotor skills</b> (moving the body, like running or dodging) and <b>manipulative skills</b> (controlling an object, like throwing or striking).",
     thanks:"Bullseye! You really know your target game skills now!",
@@ -1756,7 +1756,7 @@ ap: { label:"ARALING PANLIPUNAN", sub:"Bansa at Heograpiya ng Pilipinas", icon:"
 ]},
 
 epp: { label:"EPP", sub:"Information & Communications Tech", icon:"💻", color:"#4dc9ff", topics:[
-  { key:"bahaginangcomputer", title:"Mga Bahagi ng Computer", icon:"🖥️", color:"#ff6f59", name:"MILLER", pool:10,
+  { key:"bahaginangcomputer", title:"Mga Bahagi ng Computer", icon:"🖥️", color:"#ff6f59", name:"MILLER", examReview:true,
     greet:"Ang gilingan kong ito ay may maraming magkakaibang bahagi na magkasamang gumagalaw. Alam mo ba ang tawag sa bawat bahagi ng computer?",
     lesson:"Ang computer ay binubuo ng iba't ibang bahagi: ang <b>monitor</b> (dito lumalabas ang larawan o impormasyon), ang <b>CPU o system unit</b> (ang 'utak' ng computer), ang <b>keyboard</b> (ginagamit sa pag-type ng titik, numero, at simbolo), ang <b>mouse</b> (kumokontrol sa galaw ng onscreen pointer), at ang <b>printer</b> (ginagamit sa pag-print ng dokumento).",
     thanks:"Kabisado mo na ang mga bahagi ng computer!",
@@ -1782,7 +1782,7 @@ epp: { label:"EPP", sub:"Information & Communications Tech", icon:"💻", color:
       {q:"Ang headphone o speaker ay ginagamit upang:", opts:["Makarinig ng tunog mula sa computer","Mag-type ng titik","Kumuha ng larawan","I-print ang dokumento"], correct:0},
       {q:"Alin sa mga sumusunod ang parehong maituturing na OUTPUT device?", opts:["Monitor at printer","Mouse at keyboard","Scanner at webcam","Keyboard at microphone"], correct:0}
     ]},
-  { key:"operasyongcomputer", title:"Pangunahing Operasyon ng Computer", icon:"⚙️", color:"#ffd23f", name:"VILLAGE ELDER", pool:10,
+  { key:"operasyongcomputer", title:"Pangunahing Operasyon ng Computer", icon:"⚙️", color:"#ffd23f", name:"VILLAGE ELDER", examReview:true,
     greet:"Sa mahabang panahon ko rito, natutunan kong may tamang paraan sa lahat ng bagay. Alam mo ba ang tamang paraan sa paggamit ng computer?",
     lesson:"Ang mga pangunahing operasyon ng computer ay kinabibilangan ng <b>booting</b> (pagbubukas) at <b>shutting down</b> (pagsasara) ng computer, tamang paraan ng <b>keyboarding</b> (pag-type), at wastong <b>paggamit ng mouse</b>.",
     thanks:"Sanay ka na sa mga pangunahing operasyon ng computer!",
@@ -1840,7 +1840,7 @@ epp: { label:"EPP", sub:"Information & Communications Tech", icon:"💻", color:
       {q:"Ang 'attachment' sa isang email ay tumutukoy sa:", opts:["Kalakip na file tulad ng dokumento o larawan","Ang pangalan ng nagpadala","Ang oras ng pagpapadala","Ang kulay ng email"], correct:0},
       {q:"Bakit mahalagang tiyakin ang wastong spelling ng isang website address?", opts:["Upang maiwasang mapunta sa maling o mapanganib na website","Hindi ito mahalaga","Upang mabilis lang mag-type","Upang mukhang propesyonal"], correct:0}
     ]},
-  { key:"panimulasaagrikultura", title:"Panimula sa Agrikultura", icon:"🌾", color:"#8a5a2b", name:"FARMHAND", pool:10,
+  { key:"panimulasaagrikultura", title:"Panimula sa Agrikultura", icon:"🌾", color:"#8a5a2b", name:"FARMHAND", examReview:true,
     greet:"Buong araw akong nagtatrabaho sa mga bukirin dito. Alam mo ba kung gaano kahalaga ang agrikultura sa ating bansa?",
     lesson:"Ang <b>agrikultura</b> ay ang pagsasaka o pagtatanim ng mga pananim tulad ng gulay, prutas, at butil, gayundin ang pag-aalaga ng mga hayop. Mahalaga ito dahil ito ang pangunahing pinagkukunan ng pagkain at kabuhayan ng maraming Pilipino.",
     thanks:"Kabisado mo na ang kahalagahan ng agrikultura!",
@@ -1866,7 +1866,7 @@ epp: { label:"EPP", sub:"Information & Communications Tech", icon:"💻", color:
       {q:"Ang pagsasaka ng gulay, prutas, at butil ay isang paraan ng:", opts:["Agrikultura","Pagmamanupaktura","Pagmimina","Pagbabangko"], correct:0},
       {q:"Ang pagpapalago ng ekonomiya sa pamamagitan ng pagbebenta ng mga produktong agrikultural ay tinatawag na:", opts:["Kalakalang agrikultural","Kalakalang teknolohiya","Kalakalang serbisyo","Wala sa mga nabanggit"], correct:0}
     ]},
-  { key:"kagamitansapagsasaka", title:"Kagamitan sa Pagsasaka", icon:"🧑‍🌾", color:"#6b8e23", name:"WHEAT FARMER", pool:10,
+  { key:"kagamitansapagsasaka", title:"Kagamitan sa Pagsasaka", icon:"🧑‍🌾", color:"#6b8e23", name:"WHEAT FARMER", examReview:true,
     greet:"Ginagamit ko ang aking mga kasangkapan araw-araw sa pagsasaka. Alam mo ba kung anong mga kagamitan ang ginagamit sa pagsasaka?",
     lesson:"May iba't ibang <b>kagamitan sa pagsasaka</b> na ginagamit ng mga magsasaka tulad ng asarol (para sa paghukay), kalaykay (para sa pagtitipon ng dahon), at panandang (watering can) para sa pagdidilig ng halaman. Mahalagang gamitin ang mga ito nang wasto at maingat.",
     thanks:"Kabisado mo na ang mga kagamitan sa pagsasaka!",
@@ -1892,7 +1892,7 @@ epp: { label:"EPP", sub:"Information & Communications Tech", icon:"💻", color:
       {q:"Alin sa mga sumusunod ang halimbawa ng maling paggamit ng kagamitan sa pagsasaka?", opts:["Paggamit nito nang walang pag-iingat at wastong kaalaman","Paglilinis nito pagkatapos gamitin","Pag-iimbak nito sa tuyong lugar","Pagsusuri nito bago gamitin"], correct:0},
       {q:"Ano ang benepisyo ng pagpapanatili ng malinis at maayos na kagamitan sa pagsasaka?", opts:["Mas tumatagal ito at ligtas gamitin","Mas mabilis itong masisira","Wala itong benepisyo","Nagiging mas mahal ang bayad dito"], correct:0}
     ]},
-  { key:"pangangalagangHalaman", title:"Pangangalaga ng Halaman", icon:"🌱", color:"#3ddc84", name:"ORCHARD KEEPER", pool:10,
+  { key:"pangangalagangHalaman", title:"Pangangalaga ng Halaman", icon:"🌱", color:"#3ddc84", name:"ORCHARD KEEPER", examReview:true,
     greet:"Inaalagaan ko ang aking mga punong-prutas dito sa balon. Marunong ka na bang mag-alaga ng halaman?",
     lesson:"Ang <b>pangangalaga ng halaman</b> ay nangangailangan ng tamang <b>dilig</b> (tubig), <b>sikat ng araw</b>, at <b>mabuting lupa</b>. Dapat ding alisin ang mga damo at bantayan ang halaman laban sa peste upang lumago nang malusog.",
     thanks:"Alam mo na ngayon kung paano alagaan ang halaman!",
@@ -1918,7 +1918,7 @@ epp: { label:"EPP", sub:"Information & Communications Tech", icon:"💻", color:
       {q:"Ano ang layunin ng pag-aalis ng tuyo o sirang dahon sa halaman?", opts:["Upang mapanatiling malusog ang buong halaman","Upang mabilis itong malanta","Wala itong layunin","Upang mapabilis ang pagkasira nito"], correct:0},
       {q:"Bakit mainam ang pagtatanim ng iba't ibang uri ng halaman nang magkakahiwalay ang espasyo?", opts:["Upang hindi sila magkumpitensya sa sustansya at espasyo","Upang mas mabilis silang malanta","Wala itong dahilan","Upang mahirapan lang silang alagaan"], correct:0}
     ]},
-  { key:"pagpaparamingHalaman", title:"Seksuwal at Aseksuwal na Pagpaparami ng Halaman", icon:"🌸", color:"#ff8fab", name:"VILLAGE BAKER", pool:10,
+  { key:"pagpaparamingHalaman", title:"Seksuwal at Aseksuwal na Pagpaparami ng Halaman", icon:"🌸", color:"#ff8fab", name:"VILLAGE BAKER", examReview:true,
     greet:"Bago ako magluto ng tinapay, kailangan ko munang alamin kung paano lumalaki ang trigo mula sa binhi. Alam mo ba kung paano dumadami ang mga halaman?",
     lesson:"Ang <b>seksuwal na pagpaparami</b> ay ang paglago ng bagong halaman mula sa binhi (buto), na bunga ng pagsasama ng pollen at obulo (fertilization). Ang <b>aseksuwal na pagpaparami</b> ay ang paglago ng bagong halaman nang walang binhi, tulad ng pagputol ng bahagi ng halaman (cutting), pag-ugat ng ubod (layering), o paggamit ng ugat na tulad ng kamote at luya.",
     thanks:"Magaling! Alam mo na ngayon kung paano dumadami ang mga halaman, sa binhi man o hindi!",
@@ -1944,7 +1944,7 @@ epp: { label:"EPP", sub:"Information & Communications Tech", icon:"💻", color:
       {q:"Ang mga puno ng mangga ay karaniwang pinaparami rin sa pamamagitan ng:", opts:["Grafting (isang uri ng aseksuwal na pagpaparami)","Paggamit lamang ng tubig","Paggamit lamang ng hangin","Wala sa mga nabanggit"], correct:0},
       {q:"Bakit mahalagang malaman ang pagkakaiba ng seksuwal at aseksuwal na pagpaparami?", opts:["Upang mapili ang pinakaangkop na paraan sa bawat uri ng halaman","Wala itong kabuluhan","Dahil pareho lang talaga sila","Upang makaligtaan ang pag-aalaga ng halaman"], correct:0}
     ]},
-  { key:"paganiatpagbebenta", title:"Pag-aani at Pagbebenta ng mga Inaning Tanim", icon:"🧺", color:"#ffb703", name:"FARMER'S DAUGHTER", pool:10,
+  { key:"paganiatpagbebenta", title:"Pag-aani at Pagbebenta ng mga Inaning Tanim", icon:"🧺", color:"#ffb703", name:"FARMER'S DAUGHTER", examReview:true,
     greet:"Kasama ng aking pamilya, tumutulong akong mag-ani at magbenta ng aming mga inani sa palengke. Alam mo ba kung kailan tamang mag-ani, at paano ito ibenta nang wasto?",
     lesson:"May mga <b>palatandaan ng wastong panahon ng pag-aani</b> tulad ng kulay, laki, at tigas ng bunga. Matapos anihin, dapat itong linisin, ayusin ayon sa laki o kalidad, at itago nang maayos bago <b>ibenta</b> sa palengke o sa mga mamimili.",
     thanks:"Napakagaling! Marunong ka na ngayong mag-ani at magbenta ng ating mga inani!",
@@ -2302,7 +2302,7 @@ function initOverworld(){
   const topics = CT();
   owNpcList = topics.map((t,i)=>{
     const pos = NPC_POOL[i % NPC_POOL.length];
-    return { topicIdx:i, col:pos[0], row:pos[1], title:t.title, icon:t.icon, color:t.color, name:t.name, greet:t.greet, lesson:t.lesson, thanks:t.thanks, quiz:t.quiz, pool:t.pool, topicKey:t.key };
+    return { topicIdx:i, col:pos[0], row:pos[1], title:t.title, icon:t.icon, color:t.color, name:t.name, greet:t.greet, lesson:t.lesson, thanks:t.thanks, quiz:t.quiz, examReview:t.examReview, topicKey:t.key };
   });
   owPlayer = { col:8, row:9, px:0, py:0, facing:'up', moving:false };
   owPlayer.px = owPlayer.col*TILE; owPlayer.py = owPlayer.row*TILE;
@@ -2950,7 +2950,7 @@ function pokeAnswer(displayIdx){
   if(origAnsweredIdx===qItem.correct){
     btns[displayIdx].classList.add('correct');
     sfxCorrect();
-    const heal = npc.pool ? 10 : 22;
+    const heal = npc.examReview ? 10 : 22;
     pokeState.villagerHP = Math.min(pokeState.villagerMax, pokeState.villagerHP+heal);
     villagerSprite.classList.add('heal-pulse');
     setTimeout(()=>{ villagerSprite.classList.remove('heal-pulse'); }, 1100);
@@ -2959,7 +2959,7 @@ function pokeAnswer(displayIdx){
   } else {
     btns[displayIdx].classList.add('wrong'); btns[correctDisplayIdx].classList.add('correct');
     sfxWrong();
-    const drain = npc.pool ? 10 : 22;
+    const drain = npc.examReview ? 10 : 22;
     pokeState.heroMP = Math.max(0, pokeState.heroMP-drain);
     pokeState.wrongCount++;
     heroSprite.classList.add('misfire');
@@ -3003,7 +3003,7 @@ function endPokeBattle(won){
     else stars = 1;
     const wasFirst = CP()[npc.topicIdx] === 0;
     if(stars > CP()[npc.topicIdx]){ CP()[npc.topicIdx] = stars; saveProgressLocal(); cloudSyncProgress(); }
-    if(npc.pool && npc.topicKey){
+    if(npc.examReview && npc.topicKey){
       const prevExamStars = EXAM_PROGRESS[npc.topicKey] || 0;
       if(stars > prevExamStars){ EXAM_PROGRESS[npc.topicKey] = stars; saveExamProgressLocal(); cloudSyncExamProgress(); }
     }
@@ -3105,7 +3105,7 @@ function examReviewMastered(subjectKey){
   // best (PROGRESS), which may already be 3 from before the topic became exam-review content.
   // A location with no exam-review topics returns false (nothing to master).
   const topics = SUBJECTS[subjectKey].topics;
-  const poolTopics = topics.filter(t=>t.pool);
+  const poolTopics = topics.filter(t=>t.examReview);
   if(poolTopics.length === 0) return false;
   return poolTopics.every(t => (EXAM_PROGRESS[t.key]||0) >= 3);
 }
@@ -3216,7 +3216,7 @@ function renderRegionMap(){
     const maxStars = regionMaxStarsForSubject(loc.subject);
     const mastered = regionLocationMastered(loc.subject);
     const starDisplay = mastered ? '⭐⭐⭐' : (stars>0 ? `⭐ ${stars}/${maxStars}` : '');
-    const hasExamReview = subj.topics.some(t=>t.pool);
+    const hasExamReview = subj.topics.some(t=>t.examReview);
     const examMastered = hasExamReview && examReviewMastered(loc.subject);
     const size = loc.size !== undefined ? loc.size : 15;
     // sizeY lets the tap zone be an ellipse (independent height-to-width ratio) rather than a
@@ -3288,7 +3288,7 @@ function renderLocalMap(loc){
     return `
       <div class="npc-zone" style="left:${spot.x}%; top:${spot.y}%; width:${size}%;" onclick="pickLocalMapNpc(${i})">
         ${starDisplay?`<div class="npc-zone-stars">${starDisplay}</div>`:''}
-        ${t.pool ? ((EXAM_PROGRESS[t.key]||0) >= 3 ? '<div class="exam-review-badge npc-exam-badge exam-review-badge-done" title="Exam review topic mastered">✓</div>' : '<div class="exam-review-badge npc-exam-badge" title="Exam review topic">!</div>') : ''}
+        ${t.examReview ? ((EXAM_PROGRESS[t.key]||0) >= 3 ? '<div class="exam-review-badge npc-exam-badge exam-review-badge-done" title="Exam review topic mastered">✓</div>' : '<div class="exam-review-badge npc-exam-badge" title="Exam review topic">!</div>') : ''}
         <div class="npc-marker ${spriteSrc?'has-sprite':''}">${spriteInner}</div>
       </div>`;
   }).join('');
@@ -3305,7 +3305,7 @@ function pickLocalMapNpc(topicIdx){
     topicIdx, col:0, row:0,
     title: topic.title, icon: topic.icon, color: topic.color,
     name: topic.name, greet: topic.greet, lesson: topic.lesson, thanks: topic.thanks, quiz: topic.quiz,
-    sprite: spot ? spot.sprite : null, pool: topic.pool, topicKey: topic.key
+    sprite: spot ? spot.sprite : null, examReview: topic.examReview, topicKey: topic.key
   };
   startPokeBattle(npc);
 }
