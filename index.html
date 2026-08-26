@@ -2543,11 +2543,11 @@ function resolveProgressConflict(choice){
   const localProgress = window._lqPendingLocalProgress;
   if(choice === 'cloud'){
     Object.keys(cloudProgress).forEach(subj=>{
-      if(PROGRESS[subj]) PROGRESS[subj] = cloudProgress[subj];
+      if(PROGRESS[subj]) applyProgressArray(subj, cloudProgress[subj]);
     });
   } else if(choice === 'local'){
     Object.keys(localProgress).forEach(subj=>{
-      if(PROGRESS[subj]) PROGRESS[subj] = localProgress[subj];
+      if(PROGRESS[subj]) applyProgressArray(subj, localProgress[subj]);
     });
   } else { // 'merge' — per-topic max, so neither side loses anything
     PROGRESS = mergeProgressMax(cloudProgress, localProgress);
@@ -2588,7 +2588,7 @@ async function handleAuthStateChange(user){
           promptProgressConflict(d.progress, localStars, cloudStars);
         } else {
           Object.keys(d.progress).forEach(subj=>{
-            if(PROGRESS[subj]) PROGRESS[subj] = d.progress[subj];
+            if(PROGRESS[subj]) applyProgressArray(subj, d.progress[subj]);
           });
           saveProgressLocal(); // keep local copy in sync so it's available if they later play signed-out
         }
@@ -2760,10 +2760,24 @@ function loadProgressLocal(){
     if(raw){
       const data = JSON.parse(raw);
       Object.keys(data).forEach(subj=>{
-        if(PROGRESS[subj]) PROGRESS[subj] = data[subj];
+        if(PROGRESS[subj]) applyProgressArray(subj, data[subj]);
       });
     }
   } catch(e){ /* localStorage unavailable or corrupt — fall through to fresh PROGRESS */ }
+}
+function applyProgressArray(subjectKey, savedArr){
+  // Copies a saved per-topic star array onto PROGRESS[subjectKey] by INDEX, without
+  // shrinking or growing the live array to the saved array's length. A save made before
+  // new topics were added to this subject is shorter than SUBJECTS[subjectKey].topics.length
+  // today — a blind array replace would silently drop the new topics' slots (they'd vanish
+  // instead of staying at their fresh 0), which made "every topic >=3" mastery checks report
+  // true even though the newly-added topics had never been played.
+  const live = PROGRESS[subjectKey];
+  if(!Array.isArray(savedArr) || !live) return;
+  for(let i=0; i<live.length; i++){
+    if(i < savedArr.length) live[i] = savedArr[i];
+    // else: leave live[i] at its current value (0 for a topic that didn't exist in the save)
+  }
 }
 function saveProgressLocal(){
   try{
