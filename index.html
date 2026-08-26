@@ -2631,6 +2631,7 @@ async function handleSignInClick(){
   const status = document.getElementById('signInStatus');
   if(!firebaseReady){
     if(status){ status.textContent = "Still connecting — try again in a moment."; status.className = 'signin-status error'; }
+    else { showSignInFeedback("Still connecting — try again in a moment."); }
     return;
   }
   // Only warn if this device actually has local progress that a cloud sign-in could
@@ -2645,8 +2646,22 @@ async function handleSignInClick(){
   if(btn) btn.disabled = false;
   if(!result.ok){
     if(status){ status.textContent = "Sign-in didn't complete. You can still play without an account."; status.className = 'signin-status error'; }
+    else { showSignInFeedback("Sign-in didn't complete. You can try again anytime."); }
   }
   // On success, handleAuthStateChange() fires automatically via the auth listener.
+}
+
+function showSignInFeedback(message){
+  // Fallback for when handleSignInClick is triggered from a context with no #signInStatus
+  // element to write to (e.g. the account popover on the region map) — without this, a
+  // blocked/dismissed/failed Google sign-in from that entry point gave the player zero
+  // feedback: the popover just closed and nothing else happened.
+  owOpenModal(`
+    <div class="modal-head"><div class="em">👤</div><div class="nm">Sign In</div></div>
+    <div class="modal-text">${message}</div>
+    <div class="modal-btnrow" style="display:flex; flex-direction:column; gap:10px;">
+      <button class="pixel-btn" onclick="owCloseModal()">OK</button>
+    </div>`);
 }
 
 function confirmSignInOverwrite(){
