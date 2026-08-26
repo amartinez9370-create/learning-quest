@@ -114,6 +114,9 @@
     position:static; display:inline-flex; width:18px; height:18px; font-size:13px;
     margin-left:4px; vertical-align:middle; flex-shrink:0;
   }
+  .exam-review-badge-done{
+    background:#2f9e5c; border-color:#d9ffe8; animation:none; box-shadow:0 3px 8px rgba(0,0,0,0.4);
+  }
   @media (prefers-reduced-motion: reduce){
     .exam-review-badge{ animation:none; }
   }
@@ -3054,6 +3057,20 @@ function regionLocationMastered(subjectKey){
   // "3 stars per topic will tag the location as mastered"
   return PROGRESS[subjectKey].every(s=>s>=3);
 }
+function examReviewTopicIndices(subjectKey){
+  const topics = SUBJECTS[subjectKey].topics;
+  const idxs = [];
+  topics.forEach((t,i)=>{ if(t.pool) idxs.push(i); });
+  return idxs;
+}
+function examReviewMastered(subjectKey){
+  // True only when EVERY exam-review (pool) topic at this location has all 3 stars.
+  // A location with no exam-review topics returns false (nothing to master).
+  const idxs = examReviewTopicIndices(subjectKey);
+  if(idxs.length === 0) return false;
+  const prog = PROGRESS[subjectKey];
+  return idxs.every(i => prog[i] >= 3);
+}
 function subjectShortLabel(subjectKey){
   // Short/abbreviated form for compact UI (region map pins, local map info bar).
   // Only Araling Panlipunan's full label ("ARALING PANLIPUNAN") is too long to use as-is;
@@ -3162,6 +3179,7 @@ function renderRegionMap(){
     const mastered = regionLocationMastered(loc.subject);
     const starDisplay = mastered ? '⭐⭐⭐' : (stars>0 ? `⭐ ${stars}/${maxStars}` : '');
     const hasExamReview = subj.topics.some(t=>t.pool);
+    const examMastered = hasExamReview && examReviewMastered(loc.subject);
     const size = loc.size !== undefined ? loc.size : 15;
     // sizeY lets the tap zone be an ellipse (independent height-to-width ratio) rather than a
     // fixed circle. Defaults to matching size, so any location without sizeY set behaves exactly
@@ -3176,7 +3194,7 @@ function renderRegionMap(){
     return `
       <div class="region-zone" style="left:${loc.cx}%; top:${loc.cy}%; width:${size}%; height:${heightPct}%;" onclick="pickRegionLocation('${loc.key}')">
         <div class="region-zone-inner"></div>
-        <div class="region-zone-label"><span class="region-zone-name-line">${loc.name} <span class="region-zone-subject">- ${subjectShortLabel(loc.subject)}</span>${hasExamReview ? '<span class="exam-review-badge exam-review-badge-inline" title="Exam review topics available">!</span>' : ''}</span>${starDisplay?`<div class="region-zone-stars">${starDisplay}</div>`:''}</div>
+        <div class="region-zone-label"><span class="region-zone-name-line">${loc.name} <span class="region-zone-subject">- ${subjectShortLabel(loc.subject)}</span>${hasExamReview ? (examMastered ? '<span class="exam-review-badge exam-review-badge-inline exam-review-badge-done" title="All exam review topics mastered">✓</span>' : '<span class="exam-review-badge exam-review-badge-inline" title="Exam review topics available">!</span>') : ''}</span>${starDisplay?`<div class="region-zone-stars">${starDisplay}</div>`:''}</div>
       </div>`;
   }).join('');
   // The image lives in its own clipped (rounded-corner) frame; zone markers/labels sit in an
@@ -3232,7 +3250,7 @@ function renderLocalMap(loc){
     return `
       <div class="npc-zone" style="left:${spot.x}%; top:${spot.y}%; width:${size}%;" onclick="pickLocalMapNpc(${i})">
         ${starDisplay?`<div class="npc-zone-stars">${starDisplay}</div>`:''}
-        ${t.pool ? '<div class="exam-review-badge npc-exam-badge" title="Exam review topic">!</div>' : ''}
+        ${t.pool ? (stars >= 3 ? '<div class="exam-review-badge npc-exam-badge exam-review-badge-done" title="Exam review topic mastered">✓</div>' : '<div class="exam-review-badge npc-exam-badge" title="Exam review topic">!</div>') : ''}
         <div class="npc-marker ${spriteSrc?'has-sprite':''}">${spriteInner}</div>
       </div>`;
   }).join('');
