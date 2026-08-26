@@ -2510,88 +2510,24 @@ window.addEventListener('lq-firebase-ready', ()=>{
 function sumProgressStars(progressObj){
   return Object.values(progressObj).reduce((sum,arr)=>sum + arr.reduce((a,b)=>a+b,0), 0);
 }
-function mergeProgressMax(progressA, progressB){
-  const merged = {};
-  Object.keys(PROGRESS).forEach(subj=>{
-    const a = progressA[subj] || [];
-    const b = progressB[subj] || [];
-    merged[subj] = PROGRESS[subj].map((_,i)=> Math.max(a[i]||0, b[i]||0));
-  });
-  return merged;
-}
-
-function promptProgressConflict(cloudProgress, localStars, cloudStars){
-  // Stash the cloud copy so the button handlers below can get at it without
-  // threading it through onclick attribute strings.
-  window._lqPendingCloudProgress = cloudProgress;
-  window._lqPendingLocalProgress = JSON.parse(JSON.stringify(PROGRESS)); // snapshot before any changes
-  const mergedStars = sumProgressStars(mergeProgressMax(cloudProgress, window._lqPendingLocalProgress));
-  owOpenModal(`
-    <div class="modal-head"><div class="em">⭐</div><div class="nm">Progress Found</div></div>
-    <div class="modal-text">
-      This device and your account both have saved progress. Which should we keep?
-    </div>
-    <div class="modal-btnrow" style="display:flex; flex-direction:column; gap:10px;">
-      <button class="pixel-btn" onclick="resolveProgressConflict('merge')">Merge Progress (${mergedStars} ⭐)</button>
-      <button class="pixel-btn" onclick="resolveProgressConflict('cloud')">Keep Cloud Progress (${cloudStars} ⭐)</button>
-      <button class="pixel-btn" onclick="resolveProgressConflict('local')">Keep Local Progress (${localStars} ⭐)</button>
-    </div>`);
-}
-
-function resolveProgressConflict(choice){
-  const cloudProgress = window._lqPendingCloudProgress;
-  const localProgress = window._lqPendingLocalProgress;
-  if(choice === 'cloud'){
-    Object.keys(cloudProgress).forEach(subj=>{
-      if(PROGRESS[subj]) applyProgressArray(subj, cloudProgress[subj]);
-    });
-  } else if(choice === 'local'){
-    Object.keys(localProgress).forEach(subj=>{
-      if(PROGRESS[subj]) applyProgressArray(subj, localProgress[subj]);
-    });
-  } else { // 'merge' — per-topic max, so neither side loses anything
-    PROGRESS = mergeProgressMax(cloudProgress, localProgress);
-  }
-  saveProgressLocal();
-  cloudSyncProgress(); // push the resolved result back so both sides converge
-  delete window._lqPendingCloudProgress;
-  delete window._lqPendingLocalProgress;
-  owCloseModal();
-  renderRegionMap();
-}
 
 async function handleAuthStateChange(user){
   cloudUser = user;
   if(user){
-    // Signed in: try to load their cloud progress.
+    // Signed in: cloud always wins — see confirmSignInOverwrite() for the one-time warning
+    // shown before a fresh sign-in with existing local progress. An already-authenticated
+    // session restoring on page load (no prior local progress at risk of surprise loss)
+    // applies the same way, silently.
     const result = await window.LQFirebase.loadProgress(user.uid);
     if(result.ok && result.data){
       const d = result.data;
       if(d.gender) playerGender = d.gender;
       if(d.playerName) playerName = d.playerName;
       if(d.progress){
-        const localStars = sumProgressStars(PROGRESS);
-        const cloudStars = sumProgressStars(d.progress);
-        // Only worth asking about when BOTH sides actually have some progress and they
-        // differ — a brand-new account (cloud empty) or a fresh device (local empty)
-        // has an obvious right answer, so just proceed without interrupting anyone.
-        // NOTE: compare star VALUES per topic, not JSON.stringify — key order between
-        // Firestore's returned object and our locally-built PROGRESS isn't guaranteed
-        // to match, so a naive stringify comparison gives false positives.
-        const progressDiffers = Object.keys(PROGRESS).some(subj=>{
-          const localArr = PROGRESS[subj] || [];
-          const cloudArr = d.progress[subj] || [];
-          if(localArr.length !== cloudArr.length) return true;
-          return localArr.some((v,i)=> v !== cloudArr[i]);
+        Object.keys(d.progress).forEach(subj=>{
+          if(PROGRESS[subj]) applyProgressArray(subj, d.progress[subj]);
         });
-        if(localStars > 0 && cloudStars > 0 && progressDiffers){
-          promptProgressConflict(d.progress, localStars, cloudStars);
-        } else {
-          Object.keys(d.progress).forEach(subj=>{
-            if(PROGRESS[subj]) applyProgressArray(subj, d.progress[subj]);
-          });
-          saveProgressLocal(); // keep local copy in sync so it's available if they later play signed-out
-        }
+        saveProgressLocal(); // keep local copy in sync so it's available if they later play signed-out
       }
       if(d.examProgress){
         // Lower stakes than PROGRESS (no leaderboard tie, no visible star count) — auto-merge
@@ -2697,6 +2633,12 @@ async function handleSignInClick(){
     if(status){ status.textContent = "Still connecting — try again in a moment."; status.className = 'signin-status error'; }
     return;
   }
+  // Only warn if this device actually has local progress that a cloud sign-in could
+  // overwrite — a fresh device/new player has nothing to lose, so skip straight to sign-in.
+  if(sumProgressStars(PROGRESS) > 0){
+    const proceed = await confirmSignInOverwrite();
+    if(!proceed) return;
+  }
   if(btn) btn.disabled = true;
   if(status){ status.textContent = "Opening Google sign-in..."; status.className = 'signin-status'; }
   const result = await window.LQFirebase.signIn();
@@ -2705,6 +2647,31 @@ async function handleSignInClick(){
     if(status){ status.textContent = "Sign-in didn't complete. You can still play without an account."; status.className = 'signin-status error'; }
   }
   // On success, handleAuthStateChange() fires automatically via the auth listener.
+}
+
+function confirmSignInOverwrite(){
+  // Shown only when signing in from a signed-out state with existing local progress.
+  // Cloud always wins on sign-in now (see handleAuthStateChange) — no merge/keep-local
+  // option — so this is the one chance to back out before local progress is replaced.
+  return new Promise(resolve=>{
+    window._lqSignInConfirmResolve = resolve;
+    owOpenModal(`
+      <div class="modal-head"><div class="em">☁️</div><div class="nm">Sign In?</div></div>
+      <div class="modal-text">
+        Signing in will load your account's saved progress and replace this device's local progress with it. This cannot be undone.
+      </div>
+      <div class="modal-btnrow" style="display:flex; flex-direction:column; gap:10px;">
+        <button class="pixel-btn" onclick="resolveSignInConfirm(true)">Sign In</button>
+        <button class="pixel-btn" onclick="resolveSignInConfirm(false)">Cancel</button>
+      </div>`);
+  });
+}
+function resolveSignInConfirm(proceed){
+  owCloseModal();
+  if(window._lqSignInConfirmResolve){
+    window._lqSignInConfirmResolve(proceed);
+    delete window._lqSignInConfirmResolve;
+  }
 }
 
 async function handleSignOutClick(){
