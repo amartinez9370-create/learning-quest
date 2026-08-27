@@ -595,9 +595,14 @@
     box-shadow:0 3px 10px rgba(0,0,0,0.3); backdrop-filter:blur(2px);
   }
   .fullscreen-btn:active{ transform:translateY(1px) scale(0.96); }
-  /* CSS-only fallback for browsers without a working Fullscreen API (e.g. iPhone Safari):
-     strips the wrap's own margins/padding so the game fills the viewport instead. */
+  /* CSS-only fallback for browsers without a working Fullscreen API (e.g. iPhone Safari),
+     and ALSO applied during real Fullscreen API mode: relaxes every layout container's own
+     max-width cap so the game actually grows to use the extra screen space, instead of just
+     hiding the browser chrome while everything stays the same size. */
   .wrap.immersive-mode{ max-width:none; margin:0; padding:6px 6px 6px; min-height:100vh; }
+  .wrap.immersive-mode .region-wrap,
+  .wrap.immersive-mode .localmap-wrap{ max-width:1700px; }
+  .wrap.immersive-mode .poke-arena{ max-width:1500px; }
 </style>
 </head>
 <body>
@@ -3431,6 +3436,17 @@ function totalStarsAllRegions(){
 function isDocFullscreen(){
   return !!(document.fullscreenElement || document.webkitFullscreenElement);
 }
+function syncImmersiveModeWithFullscreen(){
+  const app = document.getElementById('app');
+  if(isDocFullscreen()){
+    app.classList.add('immersive-mode');
+  } else if(app.dataset.immersiveFallback !== '1'){
+    // Only auto-remove immersive-mode here if it wasn't turned on by the CSS-only
+    // fallback path (that path manages its own on/off via the button directly).
+    app.classList.remove('immersive-mode');
+  }
+  updateFullscreenBtnIcon();
+}
 function updateFullscreenBtnIcon(){
   const btn = document.getElementById('fullscreenBtn');
   if(!btn) return;
@@ -3441,17 +3457,18 @@ function updateFullscreenBtnIcon(){
 function toggleFullscreen(){
   const app = document.getElementById('app');
   const canRequest = app.requestFullscreen || app.webkitRequestFullscreen;
-  const canExit = document.exitFullscreen || document.webkitExitFullscreen;
 
   if(isDocFullscreen()){
-    // Already in real fullscreen -> exit it.
+    // Already in real fullscreen -> exit it. syncImmersiveModeWithFullscreen (fired via
+    // the fullscreenchange event) will remove immersive-mode once the exit completes.
     const exitFn = document.exitFullscreen ? document.exitFullscreen.bind(document) : document.webkitExitFullscreen.bind(document);
     exitFn().catch(()=>{});
     return;
   }
-  if(app.classList.contains('immersive-mode')){
-    // Already in the CSS fallback -> exit that instead.
+  if(app.classList.contains('immersive-mode') && app.dataset.immersiveFallback === '1'){
+    // Already in the CSS-only fallback -> exit that instead.
     app.classList.remove('immersive-mode');
+    delete app.dataset.immersiveFallback;
     updateFullscreenBtnIcon();
     return;
   }
@@ -3462,17 +3479,19 @@ function toggleFullscreen(){
       result.catch(()=>{
         // Real fullscreen was rejected/unsupported at runtime -> fall back to CSS immersive mode.
         app.classList.add('immersive-mode');
+        app.dataset.immersiveFallback = '1';
         updateFullscreenBtnIcon();
       });
     }
   } else {
     // No Fullscreen API at all (e.g. iPhone Safari) -> CSS fallback.
     app.classList.add('immersive-mode');
+    app.dataset.immersiveFallback = '1';
     updateFullscreenBtnIcon();
   }
 }
-document.addEventListener('fullscreenchange', updateFullscreenBtnIcon);
-document.addEventListener('webkitfullscreenchange', updateFullscreenBtnIcon);
+document.addEventListener('fullscreenchange', syncImmersiveModeWithFullscreen);
+document.addEventListener('webkitfullscreenchange', syncImmersiveModeWithFullscreen);
 
 function goToRegionMap(){
   currentSubjectKey = null;
