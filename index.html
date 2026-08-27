@@ -586,10 +586,23 @@
 
   .icon-svg-inline{ width:100%; height:100%; display:block; }
   .battle-visual-wrap svg{ width:100%; height:100%; display:block; }
+
+  .fullscreen-btn{
+    position:fixed; top:10px; right:10px; z-index:1100;
+    width:40px; height:40px; border-radius:10px; border:2px solid var(--border);
+    background:rgba(20,18,40,0.72); color:#f4f4f8; font-size:18px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    box-shadow:0 3px 10px rgba(0,0,0,0.3); backdrop-filter:blur(2px);
+  }
+  .fullscreen-btn:active{ transform:translateY(1px) scale(0.96); }
+  /* CSS-only fallback for browsers without a working Fullscreen API (e.g. iPhone Safari):
+     strips the wrap's own margins/padding so the game fills the viewport instead. */
+  .wrap.immersive-mode{ max-width:none; margin:0; padding:6px 6px 6px; min-height:100vh; }
 </style>
 </head>
 <body>
 <div class="wrap" id="app">
+<button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="Toggle fullscreen">⛶</button>
 
   <!-- SUBJECT PICKER -->
   <div class="screen" id="screen-subject">
@@ -3414,6 +3427,52 @@ function totalStarsForRegion(regionKey){
 function totalStarsAllRegions(){
   return Object.keys(REGIONS).reduce((sum,rk)=>sum + totalStarsForRegion(rk), 0);
 }
+
+function isDocFullscreen(){
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+function updateFullscreenBtnIcon(){
+  const btn = document.getElementById('fullscreenBtn');
+  if(!btn) return;
+  const active = isDocFullscreen() || document.getElementById('app').classList.contains('immersive-mode');
+  btn.textContent = active ? '⤢' : '⛶';
+  btn.title = active ? 'Exit fullscreen' : 'Toggle fullscreen';
+}
+function toggleFullscreen(){
+  const app = document.getElementById('app');
+  const canRequest = app.requestFullscreen || app.webkitRequestFullscreen;
+  const canExit = document.exitFullscreen || document.webkitExitFullscreen;
+
+  if(isDocFullscreen()){
+    // Already in real fullscreen -> exit it.
+    const exitFn = document.exitFullscreen ? document.exitFullscreen.bind(document) : document.webkitExitFullscreen.bind(document);
+    exitFn().catch(()=>{});
+    return;
+  }
+  if(app.classList.contains('immersive-mode')){
+    // Already in the CSS fallback -> exit that instead.
+    app.classList.remove('immersive-mode');
+    updateFullscreenBtnIcon();
+    return;
+  }
+  if(canRequest){
+    const requestFn = app.requestFullscreen ? app.requestFullscreen.bind(app) : app.webkitRequestFullscreen.bind(app);
+    const result = requestFn();
+    if(result && result.catch){
+      result.catch(()=>{
+        // Real fullscreen was rejected/unsupported at runtime -> fall back to CSS immersive mode.
+        app.classList.add('immersive-mode');
+        updateFullscreenBtnIcon();
+      });
+    }
+  } else {
+    // No Fullscreen API at all (e.g. iPhone Safari) -> CSS fallback.
+    app.classList.add('immersive-mode');
+    updateFullscreenBtnIcon();
+  }
+}
+document.addEventListener('fullscreenchange', updateFullscreenBtnIcon);
+document.addEventListener('webkitfullscreenchange', updateFullscreenBtnIcon);
 
 function goToRegionMap(){
   currentSubjectKey = null;
