@@ -3279,9 +3279,18 @@ function endPokeBattle(won){
   owBattleActive = false;
   if(won){
     let stars;
-    if(pokeState.wrongCount===0) stars = 3;
-    else if(pokeState.wrongCount<=2) stars = 2;
-    else stars = 1;
+    if(npc.examReview){
+      // Exam-review battles are ~2x longer (10 hits to win vs. 5), so they use
+      // their own, deliberately more lenient thresholds rather than the
+      // regular-topic thresholds scaled strictly by battle length.
+      if(pokeState.wrongCount<=2) stars = 3;
+      else if(pokeState.wrongCount<=6) stars = 2;
+      else stars = 1;
+    } else {
+      if(pokeState.wrongCount===0) stars = 3;
+      else if(pokeState.wrongCount<=2) stars = 2;
+      else stars = 1;
+    }
     const wasFirst = CP()[npc.topicIdx] === 0;
     if(stars > CP()[npc.topicIdx]){ CP()[npc.topicIdx] = stars; saveProgressLocal(); cloudSyncProgress(); }
     if(npc.examReview && npc.topicKey){
