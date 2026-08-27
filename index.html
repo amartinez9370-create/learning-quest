@@ -603,7 +603,7 @@
      as large as possible while always fitting entirely within the screen in both directions,
      without ever distorting proportions or overflowing. See applyImmersiveScale() in JS. */
   .wrap.immersive-mode{
-    min-height:100vh;
+    min-height:100vh; padding:0;
     display:flex; align-items:center; justify-content:center;
   }
   .wrap.immersive-mode #immersiveScaleInner{
@@ -3445,6 +3445,23 @@ function totalStarsAllRegions(){
 function isDocFullscreen(){
   return !!(document.fullscreenElement || document.webkitFullscreenElement);
 }
+// Reference natural height used for ALL screens' scale calculation, captured once from the
+// region map (the tallest screen). Using a single shared reference -- rather than each
+// screen's own natural height -- means every screen renders at the SAME zoom level; without
+// this, a naturally-shorter screen (like a battle) had more unused height budget and scaled
+// up more aggressively than the map, making it look oversized by comparison.
+let immersiveReferenceHeight = null;
+function captureImmersiveReferenceHeight(){
+  if(immersiveReferenceHeight !== null) return;
+  const inner = document.getElementById('immersiveScaleInner');
+  const prevTransform = inner.style.transform;
+  inner.style.transform = '';
+  const wasActive = document.getElementById('screen-region').classList.contains('active');
+  if(wasActive){
+    immersiveReferenceHeight = inner.offsetHeight;
+  }
+  inner.style.transform = prevTransform;
+}
 function applyImmersiveScale(){
   const app = document.getElementById('app');
   const inner = document.getElementById('immersiveScaleInner');
@@ -3452,14 +3469,18 @@ function applyImmersiveScale(){
     inner.style.transform = '';
     return;
   }
-  // Measure the inner content's natural (unscaled) size. Clear any previous transform
+  captureImmersiveReferenceHeight();
+  // Measure the inner content's natural (unscaled) width. Clear any previous transform
   // first so the measurement reflects the element's real, un-scaled layout size.
   inner.style.transform = '';
   const naturalW = inner.offsetWidth;
-  const naturalH = inner.offsetHeight;
+  const naturalH = immersiveReferenceHeight || inner.offsetHeight;
   if(naturalW===0 || naturalH===0) return;
-  const viewportW = window.innerWidth;
-  const viewportH = window.innerHeight;
+  // Small safety margin (97%) so the scaled content never touches the exact viewport edge --
+  // at exactly 100%, minor rounding/leftover padding could push content a few pixels past
+  // the edge and get clipped, which is what caused the reported top-cropping.
+  const viewportW = window.innerWidth * 0.97;
+  const viewportH = window.innerHeight * 0.97;
   // Pick the tighter-fitting dimension so the app grows as large as possible while
   // always fitting entirely within the screen in BOTH directions -- this is what makes
   // landscape screens scale-limited by height and portrait screens scale-limited by width,
@@ -3546,6 +3567,12 @@ function goToRegionMap(){
   currentLocationKey = null;
   renderRegionMap();
   showScreen('screen-region');
+  if(document.getElementById('app').classList.contains('immersive-mode')){
+    requestAnimationFrame(()=>{
+      immersiveReferenceHeight = null;
+      applyImmersiveScale();
+    });
+  }
 }
 
 async function openLeaderboard(){
