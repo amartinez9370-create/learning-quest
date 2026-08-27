@@ -595,19 +595,27 @@
     box-shadow:0 3px 10px rgba(0,0,0,0.3); backdrop-filter:blur(2px);
   }
   .fullscreen-btn:active{ transform:translateY(1px) scale(0.96); }
-  /* CSS-only fallback for browsers without a working Fullscreen API (e.g. iPhone Safari),
-     and ALSO applied during real Fullscreen API mode: relaxes every layout container's own
-     max-width cap so the game actually grows to use the extra screen space, instead of just
-     hiding the browser chrome while everything stays the same size. */
-  .wrap.immersive-mode{ max-width:none; margin:0; padding:6px 6px 6px; min-height:100vh; }
-  .wrap.immersive-mode .region-wrap,
-  .wrap.immersive-mode .localmap-wrap{ max-width:1700px; }
-  .wrap.immersive-mode .poke-arena{ max-width:1500px; }
+  /* Fullscreen / immersive-mode scaling: rather than relaxing individual containers'
+     max-width (which let content overflow vertically on wide landscape screens, since each
+     element's own height was still content-driven), #app is scaled as a single rigid unit via
+     a JS-computed transform: scale(). The scale factor is min(viewportW/naturalW,
+     viewportH/naturalH) -- picking the tighter of the two dimensions -- so the whole app grows
+     as large as possible while always fitting entirely within the screen in both directions,
+     without ever distorting proportions or overflowing. See applyImmersiveScale() in JS. */
+  .wrap.immersive-mode{
+    min-height:100vh;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .wrap.immersive-mode #immersiveScaleInner{
+    width:1100px; flex-shrink:0;
+    transform-origin:center center;
+  }
 </style>
 </head>
 <body>
 <div class="wrap" id="app">
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="Toggle fullscreen">⛶</button>
+<div id="immersiveScaleInner">
 
   <!-- SUBJECT PICKER -->
   <div class="screen" id="screen-subject">
@@ -710,6 +718,7 @@
     </div>
   </div>
 
+</div>
 </div>
 
 <!-- MODAL -->
@@ -3436,6 +3445,28 @@ function totalStarsAllRegions(){
 function isDocFullscreen(){
   return !!(document.fullscreenElement || document.webkitFullscreenElement);
 }
+function applyImmersiveScale(){
+  const app = document.getElementById('app');
+  const inner = document.getElementById('immersiveScaleInner');
+  if(!app.classList.contains('immersive-mode')){
+    inner.style.transform = '';
+    return;
+  }
+  // Measure the inner content's natural (unscaled) size. Clear any previous transform
+  // first so the measurement reflects the element's real, un-scaled layout size.
+  inner.style.transform = '';
+  const naturalW = inner.offsetWidth;
+  const naturalH = inner.offsetHeight;
+  if(naturalW===0 || naturalH===0) return;
+  const viewportW = window.innerWidth;
+  const viewportH = window.innerHeight;
+  // Pick the tighter-fitting dimension so the app grows as large as possible while
+  // always fitting entirely within the screen in BOTH directions -- this is what makes
+  // landscape screens scale-limited by height and portrait screens scale-limited by width,
+  // instead of one dimension silently overflowing.
+  const scale = Math.min(viewportW / naturalW, viewportH / naturalH, 2.2);
+  inner.style.transform = `scale(${scale})`;
+}
 function syncImmersiveModeWithFullscreen(){
   const app = document.getElementById('app');
   if(isDocFullscreen()){
@@ -3453,6 +3484,9 @@ function updateFullscreenBtnIcon(){
   const active = isDocFullscreen() || document.getElementById('app').classList.contains('immersive-mode');
   btn.textContent = active ? '⤢' : '⛶';
   btn.title = active ? 'Exit fullscreen' : 'Toggle fullscreen';
+  // Deferred: the browser's real fullscreen transition can take a beat to actually resize
+  // the viewport, so measuring immediately can read the OLD window size.
+  requestAnimationFrame(()=> requestAnimationFrame(applyImmersiveScale));
 }
 function toggleFullscreen(){
   const app = document.getElementById('app');
@@ -3492,6 +3526,20 @@ function toggleFullscreen(){
 }
 document.addEventListener('fullscreenchange', syncImmersiveModeWithFullscreen);
 document.addEventListener('webkitfullscreenchange', syncImmersiveModeWithFullscreen);
+window.addEventListener('resize', ()=>{ if(document.getElementById('app').classList.contains('immersive-mode')) applyImmersiveScale(); });
+// Re-measure whenever the active screen's content changes size (e.g. switching from the
+// region map to a battle, which has a very different natural height) while in immersive mode.
+const immersiveResizeObserver = new ResizeObserver(()=>{
+  if(document.getElementById('app').classList.contains('immersive-mode')) applyImmersiveScale();
+});
+document.addEventListener('DOMContentLoaded', ()=>{
+  const inner = document.getElementById('immersiveScaleInner');
+  if(inner) immersiveResizeObserver.observe(inner);
+});
+if(document.readyState !== 'loading'){
+  const inner = document.getElementById('immersiveScaleInner');
+  if(inner) immersiveResizeObserver.observe(inner);
+}
 
 function goToRegionMap(){
   currentSubjectKey = null;
