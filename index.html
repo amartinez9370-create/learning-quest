@@ -502,6 +502,7 @@
   .poke-textbox b{ color:var(--red-dark); }
   .poke-moves{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   @media (max-width:480px){ .poke-moves{ grid-template-columns:1fr; } }
+  .poke-continue-btn{ display:block; width:100%; margin-top:10px; }
   .poke-move{
     font-family:'Nunito', sans-serif; font-weight:800; font-size:clamp(13px,3.4vw,15px); text-align:left;
     background:#fdf6e3; color:#2a2456; border:3px solid var(--border); border-radius:8px;
@@ -3204,6 +3205,18 @@ function renderPokeBattle(message, showLesson){
 
 let pokeCurrentOptOrder = null;
 
+function pokeAdvance(){
+  const npc = owActiveQuest;
+  if(pokeState.villagerHP>=pokeState.villagerMax){ endPokeBattle(true); return; }
+  if(pokeState.heroMP<=0){ endPokeBattle(false); return; }
+  pokeState.qIdx++;
+  if(pokeState.qIdx >= pokeState.quizOrder.length){
+    pokeState.quizOrder = buildQuizOrder(npc);
+    pokeState.qIdx = 0;
+  }
+  renderPokeBattle("", false);
+}
+
 function pokeAnswer(displayIdx){
   const npc = owActiveQuest;
   const qItem = npc.quiz[pokeState.quizOrder[pokeState.qIdx % pokeState.quizOrder.length]];
@@ -3225,6 +3238,8 @@ function pokeAnswer(displayIdx){
     setTimeout(()=>{ villagerSprite.classList.remove('heal-pulse'); }, 1100);
     pokeState.correct++;
     textEl.innerHTML = `✨ Correct! ${npc.name} recovers ${heal} HP!`;
+    updatePokeBars();
+    setTimeout(pokeAdvance, 1900);
   } else {
     btns[displayIdx].classList.add('wrong'); btns[correctDisplayIdx].classList.add('correct');
     sfxWrong();
@@ -3234,19 +3249,16 @@ function pokeAnswer(displayIdx){
     heroSprite.classList.add('misfire');
     setTimeout(()=>{ heroSprite.classList.remove('misfire'); }, 1100);
     textEl.innerHTML = `💫 Not quite... the spell falters. You lose ${drain} MP.`;
-  }
-  updatePokeBars();
-
-  setTimeout(()=>{
-    if(pokeState.villagerHP>=pokeState.villagerMax){ endPokeBattle(true); return; }
-    if(pokeState.heroMP<=0){ endPokeBattle(false); return; }
-    pokeState.qIdx++;
-    if(pokeState.qIdx >= pokeState.quizOrder.length){
-      pokeState.quizOrder = buildQuizOrder(npc);
-      pokeState.qIdx = 0;
+    updatePokeBars();
+    const movesEl = document.getElementById('pokeMoves');
+    if(movesEl){
+      const continueBtn = document.createElement('button');
+      continueBtn.className = 'pixel-btn blue poke-continue-btn';
+      continueBtn.textContent = 'Continue ▶';
+      continueBtn.onclick = pokeAdvance;
+      movesEl.insertAdjacentElement('afterend', continueBtn);
     }
-    renderPokeBattle("", false);
-  }, 1900);
+  }
 }
 
 function updatePokeBars(){
