@@ -3248,7 +3248,7 @@ function pokeAnswer(displayIdx){
     pokeState.wrongCount++;
     heroSprite.classList.add('misfire');
     setTimeout(()=>{ heroSprite.classList.remove('misfire'); }, 1100);
-    textEl.innerHTML = `${qItem.q}<br><br>💫 Not quite... the spell falters. You lose ${drain} MP.`;
+    textEl.innerHTML = `💫 Not quite... the spell falters. You lose ${drain} MP.<br><br>${qItem.q}`;
     updatePokeBars();
     const movesEl = document.getElementById('pokeMoves');
     if(movesEl){
