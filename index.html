@@ -595,6 +595,14 @@
     box-shadow:0 3px 10px rgba(0,0,0,0.3); backdrop-filter:blur(2px);
   }
   .fullscreen-btn:active{ transform:translateY(1px) scale(0.96); }
+  .mute-btn{
+    position:fixed; top:56px; right:10px; z-index:1100;
+    width:40px; height:40px; border-radius:10px; border:2px solid var(--border);
+    background:rgba(20,18,40,0.72); color:#f4f4f8; font-size:18px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    box-shadow:0 3px 10px rgba(0,0,0,0.3); backdrop-filter:blur(2px);
+  }
+  .mute-btn:active{ transform:translateY(1px) scale(0.96); }
   /* Fullscreen / immersive-mode scaling: rather than relaxing individual containers'
      max-width (which let content overflow vertically on wide landscape screens, since each
      element's own height was still content-driven), #app is scaled as a single rigid unit via
@@ -614,6 +622,7 @@
 </head>
 <body>
 <div class="wrap" id="app">
+<button class="mute-btn" id="muteBtn" onclick="toggleMute()" title="Toggle sound">🔊</button>
 <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="Toggle fullscreen">⛶</button>
 <div id="immersiveScaleInner">
 
@@ -731,7 +740,27 @@
    AUDIO
    ============================================================ */
 let actx;
+let audioMuted = false;
+try{
+  audioMuted = localStorage.getItem('lqh_audio_muted') === '1';
+}catch(e){ /* localStorage unavailable — default to unmuted */ }
+function saveAudioMuted(){
+  try{ localStorage.setItem('lqh_audio_muted', audioMuted ? '1' : '0'); }catch(e){ /* silent fail */ }
+}
+function updateMuteBtnIcon(){
+  const btn = document.getElementById('muteBtn');
+  if(!btn) return;
+  btn.textContent = audioMuted ? '🔇' : '🔊';
+  btn.title = audioMuted ? 'Unmute sound' : 'Mute sound';
+}
+function toggleMute(){
+  audioMuted = !audioMuted;
+  saveAudioMuted();
+  updateMuteBtnIcon();
+  if(!audioMuted) beep(880, 0.07); // quick confirmation blip when unmuting
+}
 function beep(freq, dur=0.09, type='square', vol=0.05){
+  if(audioMuted) return;
   try{
     if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
     const osc = actx.createOscillator(); const gain = actx.createGain();
@@ -3760,6 +3789,7 @@ loadProgressLocal();
 loadExamProgressLocal();
 goToRegionMap();
 updateSignInUI();
+updateMuteBtnIcon();
 if(!hadSavedProfile){ openCharacterSelect(); }
 </script>
 </body>
