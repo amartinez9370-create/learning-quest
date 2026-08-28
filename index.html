@@ -764,17 +764,25 @@ function beep(freq, dur=0.09, type='square', vol=0.05){
   try{
     if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
     const osc = actx.createOscillator(); const gain = actx.createGain();
-    osc.type = type; osc.frequency.value = freq; gain.gain.value = vol;
-    osc.connect(gain); gain.connect(actx.destination); osc.start();
-    gain.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
-    osc.stop(actx.currentTime + dur);
+    osc.type = type; osc.frequency.value = freq;
+    osc.connect(gain); gain.connect(actx.destination);
+    const now = actx.currentTime;
+    // Short attack ramp (instead of jumping straight to full volume) avoids an audible
+    // click/pop at the start of every beep -- a classic Web Audio artifact caused by a
+    // sudden discontinuity in the waveform when gain is set instantly rather than eased in.
+    const attack = Math.min(0.012, dur * 0.25);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(vol, now + attack);
+    osc.start(now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    osc.stop(now + dur);
   }catch(e){}
 }
-function sfxStep(){ beep(220,0.03); }
+function sfxStep(){ beep(210 + Math.random()*24, 0.03); }
 function sfxTalk(){ beep(660,0.06); }
 function sfxSelect(){ beep(560,0.05); }
 function sfxCorrect(){ beep(880,0.09); setTimeout(()=>beep(1320,0.12),90); }
-function sfxWrong(){ beep(180,0.18,'sawtooth'); }
+function sfxWrong(){ beep(260,0.16,'triangle',0.06); }
 function sfxWin(){ [660,880,1100,1320].forEach((f,i)=>setTimeout(()=>beep(f,0.15),i*140)); }
 function sfxStarStamp(index){ const freqs=[740,880,1046]; beep(freqs[index]||1046, 0.18, 'triangle', 0.07); setTimeout(()=>beep((freqs[index]||1046)*1.5, 0.1, 'sine', 0.05), 70); }
 
@@ -3311,7 +3319,7 @@ function pokeAnswer(displayIdx){
       const continueBtn = document.createElement('button');
       continueBtn.className = 'pixel-btn blue poke-continue-btn';
       continueBtn.textContent = 'Continue ▶';
-      continueBtn.onclick = pokeAdvance;
+      continueBtn.onclick = ()=>{ sfxSelect(); pokeAdvance(); };
       movesEl.insertAdjacentElement('afterend', continueBtn);
     }
   }
