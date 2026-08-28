@@ -85,7 +85,7 @@ window.LQFirebase = {
     }
   },
 
-  async saveProgress(uid, { displayName, photoURL, progress, gender, playerName }){
+  async saveProgress(uid, { displayName, photoURL, progress, examProgress, gender, playerName }){
     try {
       const totalStars = Object.values(progress).reduce(
         (sum, arr) => sum + arr.reduce((a,b)=>a+b, 0), 0
@@ -102,6 +102,7 @@ window.LQFirebase = {
         playerName: playerName || displayName || "Adventurer",
         gender: gender || "male",
         progress,
+        examProgress: examProgress || {},
         totalStars,
         lastActive: serverTimestamp()
       };
